@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ 江苏省工商业电价看板</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'PingFang SC','Microsoft YaHei','Helvetica Neue',sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;color:#333}
+.header{text-align:center;padding:28px 20px 10px;position:relative}
+.header h1{font-size:32px;color:#fff;text-shadow:0 3px 8px rgba(0,0,0,.2);letter-spacing:3px;display:inline-block;vertical-align:middle}
+.header p{color:rgba(255,255,255,.75);margin-top:6px;font-size:14px}
+@media(max-width:600px){.header h1{font-size:22px}}
+.btn-sell{padding:8px 22px;border:none;border-radius:12px;background:linear-gradient(135deg,#ff9800,#f57c00);color:#fff;font-size:14px;cursor:pointer;transition:all .3s}
+.btn-sell:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(255,152,0,.4)}
+.pv-input{border-color:#4caf50!important;background:#f1f8e9!important}
+.pv-input:focus{border-color:#66bb6a!important}
+.sell-input{border-color:#ff9800!important;background:#fff8e1!important}
+.sell-input:focus{border-color:#f57c00!important}
+.tabs{display:flex;justify-content:center;gap:12px;padding:14px 20px;flex-wrap:wrap}
+.tab-btn{padding:10px 28px;border:none;border-radius:25px;background:rgba(255,255,255,.18);color:#fff;font-size:15px;cursor:pointer;transition:all .3s;backdrop-filter:blur(6px)}
+.tab-btn:hover{background:rgba(255,255,255,.3);transform:translateY(-2px)}
+.tab-btn.active{background:#fff;color:#667eea;font-weight:700;box-shadow:0 4px 15px rgba(0,0,0,.15)}
+.container{max-width:1200px;margin:0 auto;padding:0 20px 40px}
+.panel{display:none;animation:fadeIn .4s ease}
+.panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.card{background:#fff;border-radius:20px;padding:24px;margin-bottom:20px;box-shadow:0 8px 30px rgba(0,0,0,.08)}
+.card h2{font-size:20px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card h2::before{content:'';display:inline-block;width:5px;height:22px;background:linear-gradient(180deg,#667eea,#764ba2);border-radius:3px}
+.filters{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px;align-items:center}
+.filters label{font-size:14px;color:#555;font-weight:600}
+select,input[type=number]{padding:8px 14px;border:2px solid #e0e0e0;border-radius:12px;font-size:14px;outline:none;transition:border-color .3s;background:#f8f9fa}
+select:focus,input:focus{border-color:#667eea}
+select:hover,input:hover{border-color:#b0b8d0}
+.btn{padding:8px 22px;border:none;border-radius:12px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;font-size:14px;cursor:pointer;transition:all .3s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(102,126,234,.4)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:10px 8px;text-align:center;border-radius:8px 8px 0 0}
+th:first-child{border-radius:8px 0 0 0}
+th:last-child{border-radius:0 8px 0 0}
+td{padding:8px;text-align:center;border-bottom:1px solid #f0f0f0}
+tr:hover td{background:#f8f9ff}
+.peak-cell{color:#e74c3c;font-weight:700}
+.valley-cell{color:#27ae60;font-weight:700}
+.flat-cell{color:#3498db;font-weight:600}
+.cost-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600}
+.cost-badge.peak{background:#ffeaea;color:#e74c3c}
+.cost-badge.valley{background:#eafaf1;color:#27ae60}
+.cost-badge.flat{background:#eaf2fb;color:#3498db}
+.cost-badge.buy{background:#fff3e0;color:#ff9800}
+.cost-badge.trans{background:#e8eaf6;color:#3f51b5}
+.cost-badge.govt{background:#fce4ec;color:#e91e63}
+.cost-badge.sys{background:#e0f7fa;color:#00bcd4}
+.file-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.file-item{background:#f8f9fa;border-radius:14px;padding:14px 16px;transition:all .3s;cursor:pointer;text-decoration:none;color:inherit;display:block}
+.file-item:hover{background:#f0f4ff;transform:translateY(-3px);box-shadow:0 6px 18px rgba(0,0,0,.06)}
+.file-item .month-tag{display:inline-block;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:2px 12px;border-radius:20px;font-size:13px;font-weight:600;margin-bottom:6px}
+.file-item .date{font-size:12px;color:#999}
+.file-item .title{font-size:13px;margin-top:4px;line-height:1.4}
+.file-item .has-data{color:#27ae60;font-size:11px}
+.file-item .no-data{color:#999;font-size:11px}
+.chart-container{position:relative;height:380px;margin-top:10px}
+.bill-result{background:linear-gradient(135deg,#f8f9ff,#f0f4ff);border-radius:16px;padding:20px;margin-top:16px}
+.bill-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed #e0e0e0;font-size:14px}
+.bill-row.total{font-size:18px;font-weight:700;color:#667eea;border-bottom:none;padding-top:14px}
+.bill-row span:last-child{font-weight:600}
+.info-box{background:#fff8e1;border-radius:12px;padding:14px;margin-top:14px;font-size:13px;color:#795548;line-height:1.6}
+.season-badge{display:inline-block;padding:2px 10px;border-radius:10px;font-size:12px;margin:2px}
+.season-badge.summer{background:#fff3e0;color:#ff9800}
+.season-badge.winter{background:#e3f2fd;color:#1976d2}
+.season-badge.spring{background:#e8f5e9;color:#43a047}
+.time-info{background:#f5f5f5;border-radius:12px;padding:14px;font-size:13px;line-height:1.8;color:#555;margin-top:12px}
+.year-group{margin-bottom:20px}
+.year-group h3{font-size:18px;margin-bottom:10px;color:#667eea;display:flex;align-items:center;gap:6px}
+.update-note{background:linear-gradient(135deg,#e8eaf6,#f3e5f5);border-radius:14px;padding:16px;margin-top:16px;font-size:13px;line-height:1.7;color:#455a64}
+.update-note code{background:#fff;padding:2px 6px;border-radius:4px;font-size:12px;color:#667eea}
+.file-img{width:100%;border-radius:10px;margin-top:8px;cursor:zoom-in;border:1px solid #e0e0e0;display:block;transition:transform .2s}
+.file-img:hover{transform:scale(1.01)}
+.file-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btn-mini{padding:5px 14px;border:none;border-radius:8px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;font-size:12px;cursor:pointer;transition:all .2s}
+.btn-mini:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(102,126,234,.35)}
+.lightbox{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.88);z-index:999;display:none;align-items:center;justify-content:center;cursor:zoom-out;padding:24px}
+.lightbox img{max-width:96%;max-height:94%;border-radius:8px;box-shadow:0 12px 48px rgba(0,0,0,.6)}
+.lightbox .close-btn{position:absolute;top:16px;right:30px;color:#fff;font-size:38px;cursor:pointer;line-height:1;opacity:.85}
+.lightbox .close-btn:hover{opacity:1}
+</style>
+</head>
+<body>
+<div class="header">
+<h1>⚡ 江苏省工商业电价看板</h1>
+
+<p>国网江苏省电力有限公司 · 代理购电工商业用户电价公示数据 · 金湖县域应用</p>
+</div>
+<div class="tabs">
+<button class="tab-btn active" onclick="switchTab(0)">📊 电价查询</button>
+<button class="tab-btn" onclick="switchTab(1)">📁 文件浏览</button>
+<button class="tab-btn" onclick="switchTab(2)">📈 趋势分析</button>
+<button class="tab-btn" onclick="switchTab(3)">🧮 电费计算</button>
+</div>
+<div class="container">
+
+<!-- ===== Tab 0: 电价查询 ===== -->
+<div class="panel active" id="panel0">
+<div class="card">
+<h2>选择月份与筛选条件</h2>
+<div class="filters">
+<div><label>年份</label>
+<select id="selYear" onchange="updateMonths()"></select></div>
+<div><label>月份</label>
+<select id="selMonth" onchange="renderPriceTable()"></select></div>
+<div><label>用电分类</label>
+<select id="selCat" onchange="renderPriceTable()">
+<option value="-1">全部</option>
+<option value="0">两部制</option>
+<option value="1">单一制(≥100kVA)</option>
+<option value="2">单一制(<100kVA)</option>
+</select></div>
+<div><label>电压等级</label>
+<select id="selVolt" onchange="renderPriceTable()">
+<option value="-1">全部</option>
+<option value="0">不满1kV</option>
+<option value="1">1-10(20)kV</option>
+<option value="2">35kV</option>
+<option value="3">110kV</option>
+<option value="4">220kV+</option>
+</select></div>
+</div>
+<div id="priceTableArea"></div>
+</div>
+<div class="card">
+<h2>峰谷价格曲线（当前月份）</h2>
+<div class="chart-container"><canvas id="peakValleyChart"></canvas></div>
+</div>
+<div class="card">
+<h2>电价构成拓扑</h2>
+<div id="costBreakdown"></div>
+<div class="chart-container" style="height:260px"><canvas id="costChart"></canvas></div>
+</div>
+<div class="card">
+<h2>峰谷平时段（24小时）</h2>
+<div id="timeInfo"></div>
+<div class="chart-container" style="height:200px"><canvas id="timeLineChart"></canvas></div>
+</div>
+</div>
+
+<!-- ===== Tab 1: 文件浏览 ===== -->
+<div class="panel" id="panel1">
+<div class="card">
+<h2>电价公示公告一览</h2>
+<p style="margin-bottom:14px;color:#888;font-size:13px">点击任意公告可跳转至国网江苏官网查看原文件</p>
+<div id="fileListArea"></div>
+</div>
+<div class="card">
+<h2>数据更新说明</h2>
+<div class="update-note">
+<p><b>当前已收录16个月电价数据</b>（2025年6月 至 2026年9月），31个月公告链接（2024年3月 至 2026年9月）。</p>
+<p style="margin-top:8px"><b>每月新增数据方法：</b></p>
+<p>1. 访问 <a href="http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/index.shtml" target="_blank" style="color:#667eea">国网江苏电价公示页面</a>，找到最新月份的"代理购电工商业用户电价的公告"</p>
+<p>2. 打开公告页面，找到电价表图片，记录以下数据：</p>
+<p style="padding-left:16px">代理购电价格(b)、上网环节线损(l)、政府性基金(g)、系统运行费用(s)<br>
+各电压等级的：未分时电度价格、输配电价、最大需量、变压器容量</p>
+<p>3. 在本文件 <code>D</code> 对象中新增一行，格式：<code>"YYYY-MM":{b:0.xxx,l:0.xxx,g:0.0294,s:0.xxx,r:[[cat,volt,price,trans,demand,capacity],...]}</code></p>
+<p>4. 在 <code>A</code> 数组中新增公告链接：<code>{m:"YYYY-MM",u:"公告网址",d:"发布日期"}</code></p>
+<p>5. 刷新页面即可看到新数据。</p>
+<p style="margin-top:8px;color:#e74c3c"><b>注：</b>峰谷电价由系统自动计算（高峰=未分时+代理购电价格×上浮比例，低谷=未分时-代理购电价格×0.65），无需手动填写。</p>
+</div>
+</div>
+</div>
+
+<!-- ===== Tab 2: 趋势分析 ===== -->
+<div class="panel" id="panel2">
+<div class="card">
+<h2>价格趋势分析</h2>
+<div class="filters">
+<div><label>用电分类</label>
+<select id="trendCat" onchange="renderTrend()">
+<option value="0">两部制</option>
+<option value="1">单一制(≥100kVA)</option>
+<option value="2">单一制(<100kVA)</option>
+</select></div>
+<div><label>电压等级</label>
+<select id="trendVolt" onchange="renderTrend()">
+<option value="0">不满1kV</option>
+<option value="1" selected>1-10(20)kV</option>
+<option value="2">35kV</option>
+<option value="3">110kV</option>
+<option value="4">220kV+</option>
+</select></div>
+<div><label>起始月份</label>
+<select id="trendStart" onchange="renderTrend()"></select></div>
+<div><label>截止月份</label>
+<select id="trendEnd" onchange="renderTrend()"></select></div>
+</div>
+<div class="chart-container"><canvas id="trendChart"></canvas></div>
+</div>
+<div class="card">
+<h2>代理购电价格与系统运行费用趋势</h2>
+<div class="chart-container" style="height:300px"><canvas id="buyPriceChart"></canvas></div>
+</div>
+</div>
+
+<!-- ===== Tab 3: 电费计算 ===== -->
+<div class="panel" id="panel3">
+<div class="card">
+<h2>电费估算器</h2>
+<div class="filters">
+<div><label>月份</label>
+<select id="calcMonth"></select></div>
+<div><label>用电分类</label>
+<select id="calcCat" onchange="updateCalcVolt()">
+<option value="0">两部制</option>
+<option value="1">单一制(≥100kVA)</option>
+<option value="2">单一制(<100kVA)</option>
+</select></div>
+<div><label>电压等级</label>
+<select id="calcVolt"></select></div>
+</div>
+<div class="filters">
+<div><label>下网电量(kWh)</label>
+<input type="number" id="calcElec" value="100000" min="0" style="width:130px" title="从电网下线的购电量，与光伏自发自用相互独立"></div>
+<div><label>光伏自发自用(kWh)</label>
+<input type="number" id="calcPv" value="0" min="0" style="width:130px" class="pv-input" title="分布式光伏自发自用电量，不纳入电费，不影响容量电费"></div>
+<div id="demandDiv"><label>最大需量(kW)</label>
+<input type="number" id="calcDemand" value="0" min="0" style="width:100px"></div>
+<div id="capDiv"><label>变压器容量(kVA)</label>
+<input type="number" id="calcCap" value="0" min="0" style="width:100px"></div>
+</div>
+<div class="filters">
+<div><label>售电单价(元/kWh)</label>
+<input type="number" id="calcSellPrice" value="0.45" min="0" step="0.01" style="width:130px" class="sell-input"></div>
+<button class="btn" onclick="calcBill('agent')">代理购电计算电费</button>
+<button class="btn-sell" onclick="calcBill('sell')">售电价格计算电费</button>
+</div>
+</div>
+<div id="billResultArea"></div>
+</div>
+
+</div>
+
+<!-- ===== 图片放大查看 ===== -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+<span class="close-btn">×</span>
+<img src="" alt="公告截图">
+</div>
+
+<script>
+// ===================== 数据 =====================
+const CATS=['两部制','单一制(≥100kVA)','单一制(<100kVA)'];
+const VOLTS=['不满1kV','1-10(20)kV','35kV','110kV','220kV+'];
+const PEAK_R=[0.8,0.7,0.6]; // 高峰上浮比例
+const VALLEY_R=0.65; // 低谷下浮比例
+
+// 电价数据（cat,volt,price,trans,demand,capacity）
+// cat:0=两部制 1=单一制≥100kVA 2=单一制<100kVA; volt:0~4; demand/capacity:null=单一制
+const D={
+"2026-09":{b:0.3967,l:0.0116,g:0.0294,s:0.0722,r:[[0,0,0.6647,0.1548,54.4,34],[0,1,0.6397,0.1298,51.2,32],[0,2,0.6147,0.1048,48,30],[0,3,0.5887,0.0788,44.8,28],[0,4,0.5617,0.0518,41.6,26],[1,0,0.7490,0.2391,null,null],[1,1,0.7230,0.2131,null,null],[1,2,0.6980,0.1881,null,null],[1,3,0.6720,0.1621,null,null],[1,4,0.6450,0.1351,null,null],[2,0,0.7490,0.2391,null,null],[2,1,0.7230,0.2131,null,null],[2,2,0.6980,0.1881,null,null],[2,3,0.6720,0.1621,null,null],[2,4,0.6450,0.1351,null,null]]},
+"2026-08":{b:0.3832,l:0.0115,g:0.0294,s:0.0612,r:[[0,0,0.6401,0.1548,54.4,34],[0,1,0.6151,0.1298,51.2,32],[0,2,0.5901,0.1048,48,30],[0,3,0.5641,0.0788,44.8,28],[0,4,0.5371,0.0518,41.6,26],[1,0,0.7244,0.2391,null,null],[1,1,0.6984,0.2131,null,null],[1,2,0.6734,0.1881,null,null],[1,3,0.6474,0.1621,null,null],[1,4,0.6204,0.1351,null,null],[2,0,0.7244,0.2391,null,null],[2,1,0.6984,0.2131,null,null],[2,2,0.6734,0.1881,null,null],[2,3,0.6474,0.1621,null,null],[2,4,0.6204,0.1351,null,null]]},
+"2026-07":{b:0.3949,l:0.0131,g:0.0294,s:0.0903,r:[[0,0,0.6884,0.1607,54.4,34],[0,1,0.6634,0.1357,51.2,32],[0,2,0.6384,0.1107,48,30],[0,3,0.6134,0.0857,44.8,28],[0,4,0.5874,0.0597,41.6,26],[1,0,0.7671,0.2394,null,null],[1,1,0.7411,0.2134,null,null],[1,2,0.7161,0.1884,null,null],[2,0,0.7671,0.2394,null,null],[2,1,0.7411,0.2134,null,null],[2,2,0.7161,0.1884,null,null]]},
+"2026-06":{b:0.3730,l:0.0128,g:0.0294,s:0.0833,r:[[0,0,0.6592,0.1607,54.4,34],[0,1,0.6342,0.1357,51.2,32],[0,2,0.6092,0.1107,48,30],[0,3,0.5842,0.0857,44.8,28],[0,4,0.5582,0.0597,41.6,26],[1,0,0.7379,0.2394,null,null],[1,1,0.7119,0.2134,null,null],[1,2,0.6869,0.1884,null,null],[2,0,0.7379,0.2394,null,null],[2,1,0.7119,0.2134,null,null],[2,2,0.6869,0.1884,null,null]]},
+"2026-05":{b:0.3529,l:0.0120,g:0.0294,s:0.0750,r:[[0,0,0.6300,0.1607,54.4,34],[0,1,0.6050,0.1357,51.2,32],[0,2,0.5800,0.1107,48,30],[0,3,0.5550,0.0857,44.8,28],[0,4,0.5290,0.0597,41.6,26],[1,0,0.7087,0.2394,null,null],[1,1,0.6827,0.2134,null,null],[1,2,0.6577,0.1884,null,null],[2,0,0.7087,0.2394,null,null],[2,1,0.6827,0.2134,null,null],[2,2,0.6577,0.1884,null,null]]},
+"2026-04":{b:0.3715,l:0.0123,g:0.0294,s:0.0688,r:[[0,0,0.6427,0.1607,54.4,34],[0,1,0.6177,0.1357,51.2,32],[0,2,0.5927,0.1107,48,30],[0,3,0.5677,0.0857,44.8,28],[0,4,0.5417,0.0597,41.6,26],[1,0,0.7214,0.2394,null,null],[1,1,0.6954,0.2134,null,null],[1,2,0.6704,0.1884,null,null],[2,0,0.7214,0.2394,null,null],[2,1,0.6954,0.2134,null,null],[2,2,0.6704,0.1884,null,null]]},
+"2026-03":{b:0.3458,l:0.0121,g:0.0294,s:0.0876,r:[[0,0,0.6356,0.1607,54.4,34],[0,1,0.6106,0.1357,51.2,32],[0,2,0.5856,0.1107,48,30],[0,3,0.5606,0.0857,44.8,28],[0,4,0.5346,0.0597,41.6,26],[1,0,0.7143,0.2394,null,null],[1,1,0.6883,0.2134,null,null],[1,2,0.6633,0.1884,null,null],[2,0,0.7143,0.2394,null,null],[2,1,0.6883,0.2134,null,null],[2,2,0.6633,0.1884,null,null]]},
+"2026-02":{b:0.3102,l:0.0104,g:0.0294,s:0.1248,r:[[0,0,0.6355,0.1607,54.4,34],[0,1,0.6105,0.1357,51.2,32],[0,2,0.5855,0.1107,48,30],[0,3,0.5605,0.0857,44.8,28],[0,4,0.5345,0.0597,41.6,26],[1,0,0.7142,0.2394,null,null],[1,1,0.6882,0.2134,null,null],[1,2,0.6632,0.1884,null,null],[2,0,0.7142,0.2394,null,null],[2,1,0.6882,0.2134,null,null],[2,2,0.6632,0.1884,null,null]]},
+"2026-01":{b:0.3937,l:0.0130,g:0.0294,s:0.0814,r:[[0,0,0.6782,0.1607,54.4,34],[0,1,0.6532,0.1357,51.2,32],[0,2,0.6282,0.1107,48,30],[0,3,0.6032,0.0857,44.8,28],[0,4,0.5772,0.0597,41.6,26],[1,0,0.7569,0.2394,null,null],[1,1,0.7309,0.2134,null,null],[1,2,0.7059,0.1884,null,null],[2,0,0.7569,0.2394,null,null],[2,1,0.7309,0.2134,null,null],[2,2,0.7059,0.1884,null,null]]},
+"2025-12":{b:0.4525,l:0.0147,g:0.0294,s:0.0433,r:[[0,0,0.7006,0.1607,54.4,34],[0,1,0.6756,0.1357,51.2,32],[0,2,0.6506,0.1107,48,30],[0,3,0.6256,0.0857,44.8,28],[0,4,0.5996,0.0597,41.6,26],[1,0,0.7793,0.2394,null,null],[1,1,0.7533,0.2134,null,null],[1,2,0.7283,0.1884,null,null],[2,0,0.7793,0.2394,null,null],[2,1,0.7533,0.2134,null,null],[2,2,0.7283,0.1884,null,null]]},
+"2025-11":{b:0.4393,l:0.0144,g:0.0294,s:0.0392,r:[[0,0,0.6830,0.1607,54.4,34],[0,1,0.6580,0.1357,51.2,32],[0,2,0.6330,0.1107,48,30],[0,3,0.6080,0.0857,44.8,28],[0,4,0.5820,0.0597,41.6,26],[1,0,0.7617,0.2394,null,null],[1,1,0.7357,0.2134,null,null],[1,2,0.7107,0.1884,null,null],[2,0,0.7617,0.2394,null,null],[2,1,0.7357,0.2134,null,null],[2,2,0.7107,0.1884,null,null]]},
+"2025-10":{b:0.4336,l:0.0142,g:0.0294,s:0.0344,r:[[0,0,0.6723,0.1607,54.4,34],[0,1,0.6473,0.1357,51.2,32],[0,2,0.6223,0.1107,48,30],[0,3,0.5973,0.0857,44.8,28],[0,4,0.5713,0.0597,41.6,26],[1,0,0.7510,0.2394,null,null],[1,1,0.7250,0.2134,null,null],[1,2,0.7000,0.1884,null,null],[2,0,0.7510,0.2394,null,null],[2,1,0.7250,0.2134,null,null],[2,2,0.7000,0.1884,null,null]]},
+"2025-09":{b:0.4240,l:0.0141,g:0.0294,s:0.0581,r:[[0,0,0.6863,0.1607,54.4,34],[0,1,0.6613,0.1357,51.2,32],[0,2,0.6363,0.1107,48,30],[0,3,0.6113,0.0857,44.8,28],[0,4,0.5853,0.0597,41.6,26],[1,0,0.7650,0.2394,null,null],[1,1,0.7390,0.2134,null,null],[1,2,0.7140,0.1884,null,null],[2,0,0.7650,0.2394,null,null],[2,1,0.7390,0.2134,null,null],[2,2,0.7140,0.1884,null,null]]},
+"2025-08":{b:0.4274,l:0.0141,g:0.0294,s:0.0697,r:[[0,0,0.7013,0.1607,54.4,34],[0,1,0.6763,0.1357,51.2,32],[0,2,0.6513,0.1107,48,30],[0,3,0.6263,0.0857,44.8,28],[0,4,0.6003,0.0597,41.6,26],[1,0,0.7800,0.2394,null,null],[1,1,0.7540,0.2134,null,null],[1,2,0.7290,0.1884,null,null],[2,0,0.7800,0.2394,null,null],[2,1,0.7540,0.2134,null,null],[2,2,0.7290,0.1884,null,null]]},
+"2025-07":{b:0.4378,l:0.0144,g:0.0294,s:0.0656,r:[[0,0,0.7079,0.1607,54.4,34],[0,1,0.6829,0.1357,51.2,32],[0,2,0.6579,0.1107,48,30],[0,3,0.6329,0.0857,44.8,28],[0,4,0.6069,0.0597,41.6,26],[1,0,0.7866,0.2394,null,null],[1,1,0.7606,0.2134,null,null],[1,2,0.7356,0.1884,null,null],[2,0,0.7866,0.2394,null,null],[2,1,0.7606,0.2134,null,null],[2,2,0.7356,0.1884,null,null]]},
+"2025-06":{b:0.4275,l:0.0143,g:0.0294,s:0.0430,r:[[0,0,0.6749,0.1607,54.4,34],[0,1,0.6499,0.1357,51.2,32],[0,2,0.6249,0.1107,48,30],[0,3,0.5999,0.0857,44.8,28],[0,4,0.5739,0.0597,41.6,26],[1,0,0.7536,0.2394,null,null],[1,1,0.7276,0.2134,null,null],[1,2,0.7026,0.1884,null,null],[2,0,0.7536,0.2394,null,null],[2,1,0.7276,0.2134,null,null],[2,2,0.7026,0.1884,null,null]]},
+};
+
+// 公告链接（31个月）
+const A=[
+{m:"2026-09",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/14164.shtml",d:"2026-08-28"},
+{m:"2026-08",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/13822.shtml",d:"2026-07-28"},
+{m:"2026-07",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/13416.shtml",d:"2026-06-27"},
+{m:"2026-06",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/13002.shtml",d:"2026-05-28"},
+{m:"2026-05",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/12677.shtml",d:"2026-04-27"},
+{m:"2026-04",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/12220.shtml",d:"2026-03-28"},
+{m:"2026-03",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/11738.shtml",d:"2026-02-25"},
+{m:"2026-02",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/11135.shtml",d:"2026-01-28"},
+{m:"2026-01",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/9274.shtml",d:"2025-12-28"},
+{m:"2025-12",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/9273.shtml",d:"2025-11-27"},
+{m:"2025-11",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/9272.shtml",d:"2025-10-28"},
+{m:"2025-10",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/9271.shtml",d:"2025-09-27"},
+{m:"2025-09",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/9270.shtml",d:"2025-08-28"},
+{m:"2025-08",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/9268.shtml",d:"2025-07-28"},
+{m:"2025-07",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/9267.shtml",d:"2025-06-27"},
+{m:"2025-06",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/12309.shtml",d:"2025-05-27"},
+{m:"2025-05",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/9264.shtml",d:"2025-04-27"},
+{m:"2025-04",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/9263.shtml",d:"2025-03-28"},
+{m:"2025-03",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/9262.shtml",d:"2025-02-25"},
+{m:"2025-02",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/9261.shtml",d:"2025-01-28"},
+{m:"2025-01",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/9258.shtml",d:"2024-12-27"},
+{m:"2024-12",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/9257.shtml",d:"2024-11-27"},
+{m:"2024-11",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/9256.shtml",d:"2024-10-28"},
+{m:"2024-10",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/9254.shtml",d:"2024-09-27"},
+{m:"2024-09",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/9253.shtml",d:"2024-08-28"},
+{m:"2024-08",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/9252.shtml",d:"2024-07-27"},
+{m:"2024-07",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/9251.shtml",d:"2024-06-27"},
+{m:"2024-06",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/9250.shtml",d:"2024-05-28"},
+{m:"2024-05",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/9248.shtml",d:"2024-04-28"},
+{m:"2024-04",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/9247.shtml",d:"2024-03-28"},
+{m:"2024-03",u:"http://www.js.sgcc.com.cn/xxgk/gwszgdgs/djhsfbz/2026/9246.shtml",d:"2024-02-29"},
+];
+
+// ===================== 工具函数 =====================
+function getPeak(row,buyPrice){return +(row[2]+buyPrice*PEAK_R[row[0]]).toFixed(4)}
+function getValley(row,buyPrice){return +(row[2]-buyPrice*VALLEY_R).toFixed(4)}
+function getFlat(row){return row[2]}
+function getMonthLabel(mk){const[y,mm]=mk.split('-');return y+'年'+parseInt(mm)+'月'}
+function getSeason(mm){mm=parseInt(mm);if(mm>=6&&mm<=8)return'summer';if(mm===12||mm<=2)return'winter';return'spring'}
+const SEASON_NAME={summer:'夏冬季',winter:'夏冬季',spring:'春秋季'};
+const SEASON_TIME={
+  summer:{peak:'14:00-22:00',flat:'6:00-11:00、13:00-14:00、22:00-24:00',valley:'0:00-6:00、11:00-13:00'},
+  winter:{peak:'14:00-22:00',flat:'6:00-11:00、13:00-14:00、22:00-24:00',valley:'0:00-6:00、11:00-13:00'},
+  spring:{peak:'15:00-22:00',flat:'6:00-10:00、14:00-15:00、22:00-次日2:00',valley:'2:00-6:00、10:00-14:00'}
+};
+let pvChart=null,trendChartObj=null,buyChart=null,costChartObj=null,timeLineChartObj=null,dailyChartObj=null;
+
+// ===================== Tab切换 =====================
+function switchTab(i){
+  document.querySelectorAll('.tab-btn').forEach((b,j)=>b.classList.toggle('active',i===j));
+  document.querySelectorAll('.panel').forEach((p,j)=>p.classList.toggle('active',i===j));
+  if(i===1)renderFileList();
+  if(i===2)renderTrend();
+  if(i===3){initCalc();}
+}
+
+// ===================== 初始化下拉框 =====================
+function init(){
+  const years=[...new Set(Object.keys(D).map(k=>k.split('-')[0]))].sort((a,b)=>b-a);
+  const ySel=document.getElementById('selYear');
+  years.forEach(y=>ySel.add(new Option(y+'年',y)));
+  updateMonths();
+  // 电费计算月份
+  const calcM=document.getElementById('calcMonth');
+  Object.keys(D).sort().reverse().forEach(k=>calcM.add(new Option(getMonthLabel(k),k)));
+  updateCalcVolt();
+}
+
+function updateMonths(){
+  const y=document.getElementById('selYear').value;
+  const mSel=document.getElementById('selMonth');
+  mSel.innerHTML='';
+  Object.keys(D).filter(k=>k.startsWith(y+'-')).sort().reverse().forEach(k=>mSel.add(new Option(parseInt(k.split('-')[1])+'月',k)));
+  renderPriceTable();
+}
+
+// ===================== Tab0: 电价表 =====================
+function renderPriceTable(){
+  const mk=document.getElementById('selMonth').value;
+  if(!mk||!D[mk])return;
+  const d=D[mk];
+  const fc=document.getElementById('selCat').value;
+  const fv=document.getElementById('selVolt').value;
+  let rows=d.r.filter(r=>(fc==-1||r[0]==fc)&&(fv==-1||r[1]==fv));
+  let html='<table><thead><tr><th>用电分类</th><th>电压等级</th><th>未分时电度<br>(元/kWh)</th><th>输配电价<br>(元/kWh)</th><th class="peak-cell">高峰电价<br>(元/kWh)</th><th>平段电价<br>(元/kWh)</th><th class="valley-cell">低谷电价<br>(元/kWh)</th><th>最大需量<br>(元/kW·月)</th><th>变压器容量<br>(元/kVA·月)</th></tr></thead><tbody>';
+  rows.forEach(r=>{
+    const peak=getPeak(r,d.b),valley=getValley(r,d.b),flat=getFlat(r);
+    html+=`<tr><td>${CATS[r[0]]}</td><td>${VOLTS[r[1]]}</td><td>${r[2].toFixed(4)}</td><td>${r[3].toFixed(4)}</td><td class="peak-cell">${peak.toFixed(4)}</td><td class="flat-cell">${flat.toFixed(4)}</td><td class="valley-cell">${valley.toFixed(4)}</td><td>${r[4]!==null?r[4]:'—'}</td><td>${r[5]!==null?r[5]:'—'}</td></tr>`;
+  });
+  html+='</tbody></table>';
+  document.getElementById('priceTableArea').innerHTML=html;
+  renderCostBreakdown(mk);
+  renderPeakValleyChart(mk);
+  renderTimeInfo(mk);
+}
+
+function renderCostBreakdown(mk){
+  const d=D[mk];
+  const html=`
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+    <span class="cost-badge buy">代理购电价格 ${d.b.toFixed(4)} 元/kWh</span>
+    <span class="cost-badge trans">上网环节线损 ${d.l.toFixed(4)} 元/kWh</span>
+    <span class="cost-badge flat">输配电价（1-10kV两部制） ${d.r.find(r=>r[0]===0&&r[1]===1)[3].toFixed(4)} 元/kWh</span>
+    <span class="cost-badge govt">政府性基金及附加 ${d.g.toFixed(4)} 元/kWh</span>
+    <span class="cost-badge sys">系统运行费用折价 ${d.s.toFixed(4)} 元/kWh</span>
+  </div>
+  <div class="info-box">未分时电度价格 = 代理购电价格 + 上网环节线损费用 + 输配电价 + 政府性基金及附加 + 系统运行费用折价 = <b>${(d.b+d.l+d.r.find(r=>r[0]===0&&r[1]===1)[3]+d.g+d.s).toFixed(4)}</b> 元/kWh<br>
+  分时电价以代理购电价格为基数浮动：高峰上浮（两部制80%、单一制≥100kVA上70%、<100kVA上60%），低谷统一下浮65%</div>`;
+  document.getElementById('costBreakdown').innerHTML=html;
+  // 堆叠柱状图
+  const buyP=d.b,loss=d.l,trans=d.r.find(r=>r[0]===0&&r[1]===1)[3],gov=d.g,sys=d.s;
+  if(costChartObj)costChartObj.destroy();
+  costChartObj=new Chart(document.getElementById('costChart'),{
+    type:'bar',
+    data:{
+      labels:['未分时电度价格构成'],
+      datasets:[
+        {label:'代理购电价格',data:[buyP],backgroundColor:'rgba(255,152,0,.75)',borderColor:'#ff9800',borderWidth:1},
+        {label:'上网环节线损',data:[loss],backgroundColor:'rgba(0,188,212,.75)',borderColor:'#00bcd4',borderWidth:1},
+        {label:'输配电价',data:[trans],backgroundColor:'rgba(63,81,181,.75)',borderColor:'#3f51b5',borderWidth:1},
+        {label:'政府性基金及附加',data:[gov],backgroundColor:'rgba(233,30,99,.75)',borderColor:'#e91e63',borderWidth:1},
+        {label:'系统运行费用',data:[sys],backgroundColor:'rgba(156,39,176,.75)',borderColor:'#9c27b0',borderWidth:1}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{legend:{position:'right',labels:{font:{size:12},padding:8}},
+        tooltip:{callbacks:{label:(c)=>`${c.dataset.label}: ${c.raw.toFixed(4)} 元/kWh`}}},
+      scales:{x:{stacked:true,title:{display:true,text:'元/kWh'},beginAtZero:true},
+        y:{stacked:true}}
+    }
+  });
+}
+
+function renderTimeInfo(mk){
+  const mm=mk.split('-')[1];
+  const season=getSeason(mm);
+  const st=SEASON_TIME[season];
+  const html=`<div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+    <span class="season-badge ${season}">${SEASON_NAME[season]}</span>
+    <span style="font-size:13px;color:#888">${getMonthLabel(mk)}执行${season==='spring'?'春秋季':'夏冬季'}时段</span></div>
+    <div style="display:flex;gap:16px;font-size:13px;margin-bottom:8px">
+    <span><span style="display:inline-block;width:12px;height:12px;background:#e74c3c;border-radius:3px;vertical-align:middle;margin-right:4px"></span>高峰 ${st.peak}</span>
+    <span><span style="display:inline-block;width:12px;height:12px;background:#3498db;border-radius:3px;vertical-align:middle;margin-right:4px"></span>平段 ${st.flat}</span>
+    <span><span style="display:inline-block;width:12px;height:12px;background:#27ae60;border-radius:3px;vertical-align:middle;margin-right:4px"></span>低谷 ${st.valley}</span></div>`;
+  document.getElementById('timeInfo').innerHTML=html;
+  // 24小时时段图
+  const slots=parseTimeSlots(st,season);
+  if(timeLineChartObj)timeLineChartObj.destroy();
+  const labels=Array.from({length:24},(_,h)=>h+':00');
+  const peakData=labels.map((_,h)=>slots[h]==='peak'?1:null);
+  const flatData=labels.map((_,h)=>slots[h]==='flat'?0.6:null);
+  const valleyData=labels.map((_,h)=>slots[h]==='valley'?0.3:null);
+  timeLineChartObj=new Chart(document.getElementById('timeLineChart'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'高峰',data:peakData,backgroundColor:'rgba(231,76,60,.7)',borderColor:'#e74c3c',borderWidth:1,stack:'s'},
+      {label:'平段',data:flatData,backgroundColor:'rgba(52,152,219,.7)',borderColor:'#3498db',borderWidth:1,stack:'s'},
+      {label:'低谷',data:valleyData,backgroundColor:'rgba(39,174,96,.7)',borderColor:'#27ae60',borderWidth:1,stack:'s'}
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:(c)=>{const h=labels[c.dataIndex];const t=slots[c.dataIndex];return t==='peak'?h+' 高峰':t==='flat'?h+' 平段':t==='valley'?h+' 低谷':h}}}},
+      scales:{x:{title:{display:true,text:'时刻'},grid:{display:false}},
+        y:{display:false,min:0,max:1.2},stacked:false}
+    }
+  });
+}
+
+// 解析时段文本为24小时slot数组
+function parseTimeSlots(st,season){
+  const slots=new Array(24).fill('flat');
+  // peak
+  st.peak.split('、').forEach(seg=>{
+    const[m,s]=parseSeg(seg);for(let h=m;h<s;h++)slots[h%24]='peak';
+  });
+  // valley
+  st.valley.split('、').forEach(seg=>{
+    const[m,s]=parseSeg(seg);for(let h=m;h<s;h++)slots[h%24]='valley';
+  });
+  // flat: 剩余的设为flat
+  st.flat.split('、').forEach(seg=>{
+    const[m,s]=parseSeg(seg);for(let h=m;h<s;h++)slots[h%24]='flat';
+  });
+  return slots;
+}
+function parseSeg(seg){
+  seg=seg.replace('次日','').replace('24:00','24').replace(':00','');
+  const parts=seg.split('-');
+  let start=parseInt(parts[0]);
+  let end=parseInt(parts[1]);
+  if(end<=start)end+=24; // 次日
+  return[start,end];
+}
+
+function renderPeakValleyChart(mk){
+  if(!mk||!D[mk])return;
+  const d=D[mk];
+  const fc=document.getElementById('selCat').value;
+  const fv=document.getElementById('selVolt').value;
+  let rows=d.r.filter(r=>(fc==-1||r[0]==fc)&&(fv==-1||r[1]==fv));
+  if(rows.length===0)rows=d.r;
+  const labels=rows.map(r=>`${CATS[r[0]].substring(0,3)} ${VOLTS[r[1]]}`);
+  const peaks=rows.map(r=>getPeak(r,d.b));
+  const flats=rows.map(r=>r[2]);
+  const valleys=rows.map(r=>getValley(r,d.b));
+  if(pvChart)pvChart.destroy();
+  pvChart=new Chart(document.getElementById('peakValleyChart'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'高峰电价',data:peaks,backgroundColor:'rgba(231,76,60,.7)',borderColor:'#e74c3c',borderWidth:2,borderRadius:6},
+      {label:'平段电价',data:flats,backgroundColor:'rgba(52,152,219,.7)',borderColor:'#3498db',borderWidth:2,borderRadius:6},
+      {label:'低谷电价',data:valleys,backgroundColor:'rgba(39,174,96,.7)',borderColor:'#27ae60',borderWidth:2,borderRadius:6}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:13}}}},scales:{y:{title:{display:true,text:'元/kWh'},beginAtZero:true}},interaction:{mode:'index',intersect:false}}
+  });
+}
+
+// ===================== Tab1: 文件浏览 =====================
+// 本地公告截图映射（拷贝自旧电脑的 .temp/js-price 文件夹）
+const IMGS={
+"2024-06":".temp/js-price/2024-06.png",
+"2025-06":".temp/js-price/2025-06.jpg",
+"2025-07":".temp/js-price/2025-07.jpg",
+"2025-08":".temp/js-price/2025-08.jpg",
+"2025-09":".temp/js-price/2025-09.jpg",
+"2025-10":".temp/js-price/2025-10.jpg",
+"2025-11":".temp/js-price/2025-11.jpg",
+"2025-12":".temp/js-price/2025-12.jpg",
+"2026-01":".temp/js-price/2026-01.png",
+"2026-02":".temp/js-price/2026-02.jpg",
+"2026-03":".temp/js-price/2026-03.jpg",
+"2026-04":".temp/js-price/2026-04.jpg",
+"2026-05":".temp/js-price/2026-05.jpg",
+"2026-06":".temp/js-price/2026-06.png",
+"2026-07":".temp/js-price/2026-07.jpg",
+"2026-08":".temp/js-price/2026-08.jpg",
+"2026-09":".temp/js-price/2026-09.jpg"
+};
+
+function renderFileList(){
+  const html=[];
+  const years={};
+  A.forEach(a=>{
+    const y=a.m.split('-')[0];
+    if(!years[y])years[y]=[];
+    years[y].push(a);
+  });
+  Object.keys(years).sort((a,b)=>b-a).forEach(y=>{
+    html.push(`<div class="year-group"><h3>📅 ${y}年</h3><div class="file-list">`);
+    years[y].sort((a,b)=>b.m.localeCompare(a.m)).forEach(a=>{
+      const hasData=D[a.m]?'<span class="has-data">✓ 已提取电价数据</span>':'<span class="no-data">仅公告链接</span>';
+      const img=IMGS[a.m];
+      const thumbHtml=img?`<img class="file-img" src="${img}" alt="${getMonthLabel(a.m)}公告截图" title="点击放大查看" onclick="event.stopPropagation();showImg(this)">`:'<div class="info-box" style="margin-top:8px;padding:10px;font-size:12px">此月份暂无本地截图，可点击下方按钮打开在线公告</div>';
+      html.push(`<div class="file-item">
+        <span class="month-tag">${getMonthLabel(a.m)}</span>
+        <div class="date">发布日期：${a.d}</div>
+        <div class="title">国网江苏省电力有限公司关于${getMonthLabel(a.m)}代理购电工商业用户电价的公告</div>
+        ${thumbHtml}
+        <div class="file-actions">
+          <button class="btn-mini" onclick="event.stopPropagation();openLink('${a.u}')">🌐 打开在线公告</button>
+        </div>
+        <div style="font-size:11px;color:#667eea;margin-top:6px;word-break:break-all">${a.u}</div>
+        ${hasData}</div>`);
+    });
+    html.push('</div></div>');
+  });
+  document.getElementById('fileListArea').innerHTML=html.join('');
+}
+
+// 本地截图放大查看
+function showImg(el){
+  const box=document.getElementById('lightbox');
+  const img=box.querySelector('img');
+  img.src=el.src;
+  box.style.display='flex';
+}
+function closeLightbox(){
+  document.getElementById('lightbox').style.display='none';
+}
+
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLightbox();});
+
+function openLink(url){
+  try{
+    const w=window.open(url,'_blank');
+    if(!w||w.closed||typeof w.closed==='undefined'){
+      // 被浏览器拦截，尝试复制到剪贴板
+      if(navigator.clipboard&&navigator.clipboard.writeText){
+        navigator.clipboard.writeText(url).then(()=>alert('浏览器拦截了弹窗，链接已复制到剪贴板，请粘贴到浏览器地址栏打开')).catch(()=>prompt('浏览器拦截了弹窗，请复制链接到浏览器打开：',url));
+      }else{
+        prompt('浏览器拦截了弹窗，请复制链接到浏览器打开：',url);
+      }
+    }
+  }catch(e){
+    prompt('浏览器拦截了弹窗，请复制链接到浏览器打开：',url);
+  }
+}
+
+// ===================== Tab2: 趋势分析 =====================
+function initTrendMonths(){
+  const months=Object.keys(D).sort();
+  const sSel=document.getElementById('trendStart');
+  const eSel=document.getElementById('trendEnd');
+  if(sSel.options.length>0)return;
+  // 默认选最近12个月
+  const defaultStart=months[Math.max(0,months.length-12)];
+  const defaultEnd=months[months.length-1];
+  months.forEach(mk=>{
+    sSel.add(new Option(getMonthLabel(mk),mk));
+    eSel.add(new Option(getMonthLabel(mk),mk));
+  });
+  sSel.value=defaultStart;
+  eSel.value=defaultEnd;
+}
+
+function renderTrend(){
+  initTrendMonths();
+  const cat=parseInt(document.getElementById('trendCat').value);
+  const volt=parseInt(document.getElementById('trendVolt').value);
+  const startMk=document.getElementById('trendStart').value;
+  const endMk=document.getElementById('trendEnd').value;
+  const allMonths=Object.keys(D).sort();
+  const selMonths=allMonths.filter(mk=>mk>=startMk&&mk<=endMk);
+  const labels=selMonths.map(mk=>{const[y,mm]=mk.split('-');return y+'/'+parseInt(mm)});
+  const peaks=[],flats=[],valleys=[];
+  selMonths.forEach(mk=>{
+    const d=D[mk];
+    const row=d.r.find(r=>r[0]===cat&&r[1]===volt);
+    if(row){peaks.push(getPeak(row,d.b));flats.push(row[2]);valleys.push(getValley(row,d.b));}
+    else{peaks.push(null);flats.push(null);valleys.push(null);}
+  });
+  if(trendChartObj)trendChartObj.destroy();
+  trendChartObj=new Chart(document.getElementById('trendChart'),{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'高峰电价',data:peaks,borderColor:'#e74c3c',backgroundColor:'rgba(231,76,60,.1)',borderWidth:3,fill:true,tension:.35,pointRadius:5,pointHoverRadius:7},
+      {label:'平段电价',data:flats,borderColor:'#3498db',backgroundColor:'rgba(52,152,219,.1)',borderWidth:3,fill:true,tension:.35,pointRadius:5,pointHoverRadius:7},
+      {label:'低谷电价',data:valleys,borderColor:'#27ae60',backgroundColor:'rgba(39,174,96,.1)',borderWidth:3,fill:true,tension:.35,pointRadius:5,pointHoverRadius:7}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:13}}},tooltip:{callbacks:{title:(c)=>getMonthLabel(selMonths[c[0].dataIndex])}}},scales:{y:{title:{display:true,text:'元/kWh'},beginAtZero:false}}}
+  });
+  // 代理购电价格趋势
+  const buyPrices=selMonths.map(mk=>D[mk].b);
+  const sysCosts=selMonths.map(mk=>D[mk].s);
+  if(buyChart)buyChart.destroy();
+  buyChart=new Chart(document.getElementById('buyPriceChart'),{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'代理购电价格',data:buyPrices,borderColor:'#ff9800',backgroundColor:'rgba(255,152,0,.1)',borderWidth:3,fill:true,tension:.35,pointRadius:5},
+      {label:'系统运行费用折价',data:sysCosts,borderColor:'#00bcd4',backgroundColor:'rgba(0,188,212,.1)',borderWidth:3,fill:true,tension:.35,pointRadius:5}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:13}}}},scales:{y:{title:{display:true,text:'元/kWh'},beginAtZero:false}}}
+  });
+}
+
+// ===================== Tab3: 电费计算 =====================
+function updateCalcVolt(){
+  const cat=parseInt(document.getElementById('calcCat').value);
+  const vSel=document.getElementById('calcVolt');
+  vSel.innerHTML='';
+  const d=D[document.getElementById('calcMonth').value];
+  if(!d)return;
+  const availableVolts=[...new Set(d.r.filter(r=>r[0]===cat).map(r=>r[1]))];
+  availableVolts.forEach(v=>vSel.add(new Option(VOLTS[v],v)));
+  // 两部制显示需量/容量输入
+  document.getElementById('demandDiv').style.display=cat===0?'flex':'none';
+  document.getElementById('capDiv').style.display=cat===0?'flex':'none';
+}
+
+function initCalc(){
+  if(document.getElementById('calcMonth').options.length>0){
+    document.getElementById('calcMonth').value=Object.keys(D).sort().reverse()[0];
+  }
+  updateCalcVolt();
+}
+
+function calcBill(mode){
+  const mk=document.getElementById('calcMonth').value;
+  const cat=parseInt(document.getElementById('calcCat').value);
+  const volt=parseInt(document.getElementById('calcVolt').value);
+  const elec=parseFloat(document.getElementById('calcElec').value)||0;
+  const pvElec=parseFloat(document.getElementById('calcPv').value)||0;
+  const sellPrice=parseFloat(document.getElementById('calcSellPrice').value)||0;
+  const d=D[mk];
+  if(!d)return;
+  const row=d.r.find(r=>r[0]===cat&&r[1]===volt);
+  if(!row){document.getElementById('billResultArea').innerHTML='<div class="card"><p>该月份无此用电分类和电压等级的数据</p></div>';return;}
+  const flat=row[2],peak=getPeak(row,d.b),valley=getValley(row,d.b);
+  // 下网电量即电网购电量，与光伏自发自用相互独立
+  const gridElec=elec;
+  // 基本电费（仅两部制，不受光伏影响）
+  let baseFee=0;
+  let baseDetail='';
+  if(cat===0){
+    const demand=parseFloat(document.getElementById('calcDemand').value)||0;
+    const cap=parseFloat(document.getElementById('calcCap').value)||0;
+    const demandFee=demand*row[4];
+    const capFee=cap*row[5];
+    baseFee=Math.max(demandFee,capFee);
+    baseDetail=`<div class="bill-row"><span>按最大需量计费 (${demand}kW × ${row[4]}元)</span><span>${demandFee.toFixed(2)} 元</span></div>
+    <div class="bill-row"><span>按变压器容量计费 (${cap}kVA × ${row[5]}元)</span><span>${capFee.toFixed(2)} 元</span></div>
+    <div class="bill-row"><span>基本电费（取较大值，不受光伏影响）</span><span>${baseFee.toFixed(2)} 元</span></div>`;
+  }
+  const pvInfo=pvElec>0?`<div class="bill-row" style="background:#f1f8e9;padding:6px 12px;border-radius:8px;margin:4px 0"><span style="color:#2e7d32">☀ 光伏自发自用电量（独立数据，不纳入电费）</span><span style="color:#2e7d32">${pvElec.toLocaleString()} kWh</span></div>`:'';
+
+  let html='';
+  if(mode==='sell'){
+    // 售电价格计算：售电单价替换代理购电价格，其余费用（线损、输配电价、基金及附加、系统运行费）照常叠加
+    const sellFlat=+(sellPrice+d.l+row[3]+d.g+d.s).toFixed(4);
+    const sellPeak=+(sellFlat+sellPrice*PEAK_R[cat]).toFixed(4);
+    const sellValley=+(sellFlat-sellPrice*VALLEY_R).toFixed(4);
+    const sellElecFee=sellFlat*gridElec;
+    const sellTransFee=row[3]*gridElec;
+    const sellLossFee=d.l*gridElec;
+    const sellGovFee=d.g*gridElec;
+    const sellSysFee=d.s*gridElec;
+    const sellTotal=sellElecFee+baseFee;
+    const sellAvg=gridElec>0?sellTotal/gridElec:0;
+    // 峰谷估算
+    const peakElec=gridElec*0.4,valleyElec=gridElec*0.25,flatElec=gridElec*0.35;
+    const toUSellFee=sellPeak*peakElec+sellFlat*flatElec+sellValley*valleyElec;
+    html=`<div class="card">
+    <h2>售电价格计算电费 — ${getMonthLabel(mk)}</h2>
+    <div class="bill-result">
+    <div class="bill-row"><span>用电分类 / 电压等级</span><span>${CATS[cat]} / ${VOLTS[volt]}</span></div>
+    <div class="bill-row" style="color:#ff9800;font-weight:700"><span>售电单价（替换代理购电价格）</span><span>${sellPrice.toFixed(4)} 元/kWh</span></div>
+    <div class="bill-row"><span>上网环节线损费用</span><span>${d.l.toFixed(4)} 元/kWh</span></div>
+    <div class="bill-row"><span>输配电价</span><span>${row[3].toFixed(4)} 元/kWh</span></div>
+    <div class="bill-row"><span>政府性基金及附加</span><span>${d.g.toFixed(4)} 元/kWh</span></div>
+    <div class="bill-row"><span>系统运行费用折价</span><span>${d.s.toFixed(4)} 元/kWh</span></div>
+    <div class="bill-row" style="color:#ff9800;font-weight:700"><span>未分时电度价格（合计）</span><span>${sellFlat.toFixed(4)} 元/kWh</span></div>
+    <div class="bill-row"><span>高峰电价 / 低谷电价</span><span style="color:#e74c3c">${sellPeak.toFixed(4)}</span> / <span style="color:#27ae60">${sellValley.toFixed(4)} 元/kWh</span></div>
+    <div class="bill-row" style="border-top:2px solid #ff9800;margin-top:8px;padding-top:10px"><span>下网电量</span><span>${gridElec.toLocaleString()} kWh</span></div>
+    ${pvInfo}
+    <div class="bill-row"><span>购电电费（售电单价 × 下网电量）</span><span>${(sellPrice*gridElec).toFixed(2)} 元</span></div>
+    <div class="bill-row"><span>线损费用</span><span>${sellLossFee.toFixed(2)} 元</span></div>
+    <div class="bill-row"><span>输配电费</span><span>${sellTransFee.toFixed(2)} 元</span></div>
+    <div class="bill-row"><span>政府性基金及附加</span><span>${sellGovFee.toFixed(2)} 元</span></div>
+    <div class="bill-row"><span>系统运行费用</span><span>${sellSysFee.toFixed(2)} 元</span></div>
+    <div class="bill-row" style="font-weight:600"><span>电度电费合计</span><span>${sellElecFee.toFixed(2)} 元</span></div>
+    ${baseDetail}
+    <div class="bill-row total" style="color:#ff9800"><span>总电费（售电价格模式）</span><span>${sellTotal.toFixed(2)} 元</span></div>
+    <div class="bill-row"><span>平均电价（含基本电费）</span><span>${sellAvg.toFixed(4)} 元/kWh</span></div>
+    </div>
+    <div class="info-box" style="background:#fff8e1;color:#5d4037">
+    <b>售电价格模式说明：</b>售电单价 ${sellPrice.toFixed(4)} 元/kWh 仅替换代理购电价格（${d.b.toFixed(4)} 元/kWh），其余费用照常叠加：<br>
+    未分时电度价格 = ${sellPrice.toFixed(4)}（售电）+ ${d.l.toFixed(4)}（线损）+ ${row[3].toFixed(4)}（输配电价）+ ${d.g.toFixed(4)}（基金及附加）+ ${d.s.toFixed(4)}（系统运行费）= ${sellFlat.toFixed(4)} 元/kWh<br>
+    分时电价以售电单价为基数浮动：高峰上浮${PEAK_R[cat]*100}%，低谷下浮${VALLEY_R*100}%<br>
+    实际结算电度电费 = ${sellFlat.toFixed(4)} × ${gridElec.toLocaleString()} = ${sellElecFee.toFixed(2)} 元${cat===0?' + 基本电费 '+baseFee.toFixed(2)+' 元':''}<br>
+    ${pvElec>0?`光伏自发自用 ${pvElec.toLocaleString()} kWh 为独立数据，不纳入电费、不影响容量电费，折合节省电度电费约 ${(sellFlat*pvElec).toFixed(2)} 元`:''}
+    </div>
+    <div class="info-box">
+    <b>峰谷分时电费估算</b>（填写各时段占比，低谷自动补全）：<br>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin:8px 0;align-items:flex-end">
+    <div><label style="color:#e74c3c;font-weight:600">高峰占比 %</label>
+    <input type="number" id="touPeakPct" value="40" min="0" max="100" style="width:90px;border-color:#e74c3c" oninput="autoFillValley();updateTOUCalc('sell',${cat},${volt},'${mk}')"></div>
+    <div><label style="color:#3498db;font-weight:600">平段占比 %</label>
+    <input type="number" id="touFlatPct" value="35" min="0" max="100" style="width:90px;border-color:#3498db" oninput="autoFillValley();updateTOUCalc('sell',${cat},${volt},'${mk}')"></div>
+    <div><label style="color:#27ae60;font-weight:600">低谷占比 %</label>
+    <input type="number" id="touValleyPct" value="25" min="0" max="100" style="width:90px;border-color:#27ae60;background:#f5f5f5" readonly></div>
+    </div>
+    <div id="touResult"></div>
+    </div></div>`;
+  } else {
+    // 代理购电计算：按代理购电电价表
+    const elecFee=flat*gridElec;
+    const total=elecFee+baseFee;
+    const avgPrice=gridElec>0?total/gridElec:0;
+    const peakElec=gridElec*0.4,valleyElec=gridElec*0.25,flatElec=gridElec*0.35;
+    const toUElecFee=peak*peakElec+flat*flatElec+valley*valleyElec;
+    const pvSave=pvElec>0?flat*pvElec:0;
+    html=`<div class="card">
+    <h2>代理购电计算电费 — ${getMonthLabel(mk)}</h2>
+    <div class="bill-result">
+    <div class="bill-row"><span>用电分类 / 电压等级</span><span>${CATS[cat]} / ${VOLTS[volt]}</span></div>
+    <div class="bill-row"><span>未分时电度价格</span><span>${flat.toFixed(4)} 元/kWh</span></div>
+    <div class="bill-row"><span>高峰电价 / 低谷电价</span><span style="color:#e74c3c">${peak.toFixed(4)}</span> / <span style="color:#27ae60">${valley.toFixed(4)} 元/kWh</span></div>
+    <div class="bill-row" style="border-top:2px solid #667eea;margin-top:8px;padding-top:10px"><span>下网电量</span><span>${gridElec.toLocaleString()} kWh</span></div>
+    ${pvInfo}
+    <div class="bill-row"><span>电度电费（未分时电度价格 × 下网电量）</span><span>${elecFee.toFixed(2)} 元</span></div>
+    ${baseDetail}
+    <div class="bill-row total"><span>总电费（代理购电模式）</span><span>${total.toFixed(2)} 元</span></div>
+    <div class="bill-row"><span>平均电价（含基本电费）</span><span>${avgPrice.toFixed(4)} 元/kWh</span></div>
+    ${pvElec>0?`<div class="bill-row" style="background:#f1f8e9;border-radius:8px"><span style="color:#2e7d32">☀ 光伏自发自用节省电费</span><span style="color:#2e7d32">约 ${pvSave.toFixed(2)} 元</span></div>`:''}
+    </div>
+    <div class="info-box">
+    <b>峰谷分时电费估算</b>（填写各时段占比，低谷自动补全）：<br>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin:8px 0;align-items:flex-end">
+    <div><label style="color:#e74c3c;font-weight:600">高峰占比 %</label>
+    <input type="number" id="touPeakPct" value="40" min="0" max="100" style="width:90px;border-color:#e74c3c" oninput="autoFillValley();updateTOUCalc('agent',${cat},${volt},'${mk}')"></div>
+    <div><label style="color:#3498db;font-weight:600">平段占比 %</label>
+    <input type="number" id="touFlatPct" value="35" min="0" max="100" style="width:90px;border-color:#3498db" oninput="autoFillValley();updateTOUCalc('agent',${cat},${volt},'${mk}')"></div>
+    <div><label style="color:#27ae60;font-weight:600">低谷占比 %</label>
+    <input type="number" id="touValleyPct" value="25" min="0" max="100" style="width:90px;border-color:#27ae60;background:#f5f5f5" readonly></div>
+    </div>
+    <div id="touResult"></div>
+    </div></div>`;
+  }
+  document.getElementById('billResultArea').innerHTML=html;
+  // 初始化分时估算
+  updateTOUCalc(mode,cat,volt,mk);
+}
+
+// 低谷百分比自动补全 = 100 - 高峰 - 平段
+function autoFillValley(){
+  const peakPct=parseFloat(document.getElementById('touPeakPct').value)||0;
+  const flatPct=parseFloat(document.getElementById('touFlatPct').value)||0;
+  const valleyPct=Math.max(0,100-peakPct-flatPct);
+  const el=document.getElementById('touValleyPct');
+  if(el)el.value=valleyPct;
+}
+
+function updateTOUCalc(mode,cat,volt,mk){
+  const d=D[mk];if(!d)return;
+  const row=d.r.find(r=>r[0]===cat&&r[1]===volt);if(!row)return;
+  const sellPrice=parseFloat(document.getElementById('calcSellPrice').value)||0;
+  const baseUnit=mode==='sell'?sellPrice:d.b;
+  const flatP=mode==='sell'?+(sellPrice+d.l+row[3]+d.g+d.s).toFixed(4):row[2];
+  const peakP=+(flatP+baseUnit*PEAK_R[cat]).toFixed(4);
+  const valleyP=+(flatP-baseUnit*VALLEY_R).toFixed(4);
+  const gridElec=parseFloat(document.getElementById('calcElec').value)||0;
+  // 从百分比换算电量
+  const peakPct=parseFloat(document.getElementById('touPeakPct').value)||0;
+  const flatPct=parseFloat(document.getElementById('touFlatPct').value)||0;
+  const valleyPct=parseFloat(document.getElementById('touValleyPct').value)||0;
+  const peakElec=gridElec*peakPct/100;
+  const flatElec=gridElec*flatPct/100;
+  const valleyElec=gridElec*valleyPct/100;
+  const touTotal=peakP*peakElec+flatP*flatElec+valleyP*valleyElec;
+  const touSum=peakElec+flatElec+valleyElec;
+  const touAvg=touSum>0?touTotal/touSum:0;
+  // 基本电费
+  let baseFee=0;
+  if(cat===0){
+    const demand=parseFloat(document.getElementById('calcDemand').value)||0;
+    const cap=parseFloat(document.getElementById('calcCap').value)||0;
+    baseFee=Math.max(demand*(row[4]||0),cap*(row[5]||0));
+  }
+  const touGrand=touTotal+baseFee;
+  // 未分时对比
+  const flatTotal=flatP*gridElec+baseFee;
+  const diff=touGrand-flatTotal;
+  const pvElec=parseFloat(document.getElementById('calcPv').value)||0;
+  let html=`<div style="border-top:1px solid #e0e0e0;padding-top:8px;margin-top:4px">\n`;
+  html+=`<div class="bill-row"><span style="color:#e74c3c">高峰 ${peakPct}%（${peakElec.toLocaleString()} kWh）× ${peakP.toFixed(4)}</span><span style="color:#e74c3c">${(peakP*peakElec).toFixed(2)} 元</span></div>\n`;
+  html+=`<div class="bill-row"><span style="color:#3498db">平段 ${flatPct}%（${flatElec.toLocaleString()} kWh）× ${flatP.toFixed(4)}</span><span style="color:#3498db">${(flatP*flatElec).toFixed(2)} 元</span></div>\n`;
+  html+=`<div class="bill-row"><span style="color:#27ae60">低谷 ${valleyPct}%（${valleyElec.toLocaleString()} kWh）× ${valleyP.toFixed(4)}</span><span style="color:#27ae60">${(valleyP*valleyElec).toFixed(2)} 元</span></div>\n`;
+  html+=`<div class="bill-row" style="font-weight:600;border-top:1px solid #ddd;padding-top:6px"><span>分时电度电费合计</span><span>${touTotal.toFixed(2)} 元</span></div>\n`;
+  if(cat===0)html+=`<div class="bill-row"><span>基本电费</span><span>${baseFee.toFixed(2)} 元</span></div>\n`;
+  html+=`<div class="bill-row total"><span>分时总电费</span><span>${touGrand.toFixed(2)} 元</span></div>\n`;
+  html+=`<div class="bill-row"><span>分时平均电价</span><span style="font-weight:700;color:#667eea">${touAvg.toFixed(4)} 元/kWh</span></div>\n`;
+  html+=`<div class="bill-row" style="border-top:1px solid #ddd;padding-top:6px;margin-top:4px"><span>未分时总电费</span><span>${flatTotal.toFixed(2)} 元</span></div>\n`;
+  html+=`<div class="bill-row"><span>未分时平均电价</span><span>${(flatTotal/(gridElec||1)).toFixed(4)} 元/kWh</span></div>\n`;
+  const diffColor=diff<0?'#27ae60':'#e74c3c';
+  const diffText=diff<0?`分时比未分时节省 ${Math.abs(diff).toFixed(2)} 元`:`分时比未分时多支出 ${diff.toFixed(2)} 元`;
+  html+=`<div class="bill-row" style="background:${diff<0?'#f1f8e9':'#fff5f5'};border-radius:8px;font-weight:600"><span style="color:${diffColor}">${diffText}</span><span style="color:${diffColor}">${Math.abs(diff).toFixed(2)} 元</span></div>\n`;
+  if(pvElec>0)html+=`<div style="font-size:12px;color:#2e7d32;margin-top:4px">注：光伏自发自用 ${pvElec.toLocaleString()} kWh 为独立数据，不纳入电费，不影响基本电费。</div>\n`;
+  html+=`</div>`;
+  const el=document.getElementById('touResult');
+  if(el)el.innerHTML=html;
+  // 联动更新示意图
+  renderDailyChart(mode,peakElec,flatElec,valleyElec);
+}
+
+function renderDailyChart(mode,touPeak,touFlat,touValley){
+  mode=mode||'agent';
+  touPeak=touPeak||0;touFlat=touFlat||0;touValley=touValley||0;
+  const mk=document.getElementById('calcMonth').value;
+  const cat=parseInt(document.getElementById('calcCat').value);
+  const volt=parseInt(document.getElementById('calcVolt').value);
+  const elec=parseFloat(document.getElementById('calcElec').value)||100000;
+  const sellPrice=parseFloat(document.getElementById('calcSellPrice').value)||0.45;
+  const d=D[mk];
+  if(!d)return;
+  const row=d.r.find(r=>r[0]===cat&&r[1]===volt);
+  if(!row)return;
+  // 电价
+  const baseUnit=mode==='sell'?sellPrice:d.b;
+  const flatP=mode==='sell'?+(sellPrice+d.l+row[3]+d.g+d.s).toFixed(4):row[2];
+  const peakP=+(flatP+baseUnit*PEAK_R[cat]).toFixed(4);
+  const valleyP=+(flatP-baseUnit*VALLEY_R).toFixed(4);
+  // 按当前月份时段分配
+  const mm=mk.split('-')[1];
+  const season=getSeason(mm);
+  const slots=parseTimeSlots(SEASON_TIME[season],season);
+  const labels=Array.from({length:24},(_,h)=>h+':00');
+  // 统计各时段小时数
+  const peakHours=slots.filter(s=>s==='peak').length;
+  const flatHours=slots.filter(s=>s==='flat').length;
+  const valleyHours=slots.filter(s=>s==='valley').length;
+  // 将用户输入的峰谷平电量均分到各时段小时
+  const peakPerHour=peakHours>0?touPeak/peakHours:0;
+  const flatPerHour=flatHours>0?touFlat/flatHours:0;
+  const valleyPerHour=valleyHours>0?touValley/valleyHours:0;
+  // 各小时电量
+  const hourlyElec=labels.map((_,h)=>{
+    const t=slots[h];
+    return t==='peak'?peakPerHour:t==='valley'?valleyPerHour:flatPerHour;
+  });
+  // 各小时电费
+  const feeData=labels.map((_,h)=>{
+    const t=slots[h];
+    const p=t==='peak'?peakP:t==='valley'?valleyP:flatP;
+    return +(hourlyElec[h]*p).toFixed(2);
+  });
+  // 累计电费
+  let cum=0;
+  const cumData=labels.map((_,h)=>{cum+=feeData[h];return +cum.toFixed(2);});
+  if(dailyChartObj)dailyChartObj.destroy();
+  // 在billResultArea后面插入图表容器
+  let chartDiv=document.getElementById('dailyChartDiv');
+  if(!chartDiv){
+    chartDiv=document.createElement('div');
+    chartDiv.id='dailyChartDiv';
+    chartDiv.className='card';
+    chartDiv.innerHTML='<h2>一日分时电量电费示意图</h2><div style="font-size:13px;color:#888;margin-bottom:8px">柱状=各小时电量(kWh，按您填写的峰谷平电量分配到对应时段)，折线=各小时电费(元)，面积线=累计电费(元)</div><div class="chart-container" style="height:360px"><canvas id="dailyChart"></canvas></div>';
+    document.getElementById('panel3').insertBefore(chartDiv,document.getElementById('billResultArea').nextSibling);
+  }
+  dailyChartObj=new Chart(document.getElementById('dailyChart'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {type:'bar',label:'高峰电量(kWh)',data:labels.map((_,h)=>slots[h]==='peak'?hourlyElec[h]:null),backgroundColor:'rgba(231,76,60,.6)',borderColor:'#e74c3c',borderWidth:1,stack:'elec',order:3},
+      {type:'bar',label:'平段电量(kWh)',data:labels.map((_,h)=>slots[h]==='flat'?hourlyElec[h]:null),backgroundColor:'rgba(52,152,219,.6)',borderColor:'#3498db',borderWidth:1,stack:'elec',order:3},
+      {type:'bar',label:'低谷电量(kWh)',data:labels.map((_,h)=>slots[h]==='valley'?hourlyElec[h]:null),backgroundColor:'rgba(39,174,96,.6)',borderColor:'#27ae60',borderWidth:1,stack:'elec',order:3},
+      {type:'line',label:'小时电费(元)',data:feeData,borderColor:'#ff9800',backgroundColor:'rgba(255,152,0,.15)',borderWidth:2.5,tension:.3,pointRadius:3,yAxisID:'y1',order:2,fill:false},
+      {type:'line',label:'累计电费(元)',data:cumData,borderColor:'#667eea',backgroundColor:'rgba(102,126,234,.1)',borderWidth:2.5,tension:.3,pointRadius:0,yAxisID:'y1',order:1,fill:true}
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:12}}},
+        tooltip:{callbacks:{
+          label:(c)=>{const h=labels[c.dataIndex];const t=slots[c.dataIndex];const tn=t==='peak'?'高峰':t==='flat'?'平段':'低谷';if(c.dataset.type==='bar')return`${h} ${tn} 电量: ${c.raw.toFixed(0)} kWh`;if(c.dataset.label==='小时电费(元)')return`${h} ${tn} 电费: ${c.raw.toFixed(2)} 元`;return`${h} 累计电费: ${c.raw.toFixed(2)} 元`;}
+        }}},
+      scales:{
+        x:{title:{display:true,text:'时刻'},grid:{display:false},stacked:true},
+        y:{position:'left',title:{display:true,text:'电量(kWh)'},stacked:true,beginAtZero:true},
+        y1:{position:'right',title:{display:true,text:'电费(元)'},grid:{drawOnChartArea:false},beginAtZero:true}
+      }
+    }
+  });
+}
+
+// ===================== 启动 =====================
+init();
+renderPriceTable();
+</script>
+</body>
+</html>
