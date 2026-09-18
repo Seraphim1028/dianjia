@@ -85,6 +85,27 @@ tr:hover td{background:#f8f9ff}
 .lightbox img{max-width:96%;max-height:94%;border-radius:8px;box-shadow:0 12px 48px rgba(0,0,0,.6)}
 .lightbox .close-btn{position:absolute;top:16px;right:30px;color:#fff;font-size:38px;cursor:pointer;line-height:1;opacity:.85}
 .lightbox .close-btn:hover{opacity:1}
+.case-count{font-size:12px;color:#999;font-weight:400;margin-left:8px}
+.case-table-wrap{overflow-x:auto}
+.case-del{padding:4px 12px;border:none;border-radius:8px;background:#ffeaea;color:#e74c3c;font-size:12px;cursor:pointer;transition:all .2s}
+.case-del:hover{background:#ffc9c9}
+.btn-save-case{margin-top:16px;padding:9px 26px;border:none;border-radius:12px;background:linear-gradient(135deg,#43a047,#2e7d32);color:#fff;font-size:14px;cursor:pointer;transition:all .3s}
+.btn-save-case:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(67,160,71,.4)}
+.case-modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
+.case-modal .case-card{background:#fff;border-radius:16px;padding:26px 28px;max-width:600px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:0 16px 48px rgba(0,0,0,.3)}
+.case-modal h3{margin-bottom:16px;color:#667eea;font-size:17px}
+.case-form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.case-form label{font-size:12px;color:#555;font-weight:600;display:block;margin-bottom:3px}
+.case-form input,.case-form select{width:100%;padding:7px 10px;border:2px solid #e0e0e0;border-radius:8px;font-size:13px;outline:none;background:#f8f9fa}
+.case-form input:focus,.case-form select:focus{border-color:#667eea}
+.case-form .full{grid-column:1/-1}
+.case-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+.btn-case{padding:8px 22px;border:none;border-radius:10px;font-size:13px;cursor:pointer;transition:all .2s}
+.btn-case.primary{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
+.btn-case.primary:hover{box-shadow:0 4px 14px rgba(102,126,234,.4)}
+.btn-case.plain{background:#f0f0f0;color:#555}
+.btn-case.plain:hover{background:#e4e4e4}
+@media(max-width:600px){.case-form{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -235,14 +256,43 @@ tr:hover td{background:#f8f9ff}
 </div>
 </div>
 <div id="billResultArea"></div>
-</div>
 
+<div class="card">
+<h2>典型用户参考<span class="case-count" id="caseCount"></span></h2>
+<p style="font-size:13px;color:#888;margin-bottom:12px;line-height:1.7">维护脱敏后的典型用户电费案例（如"XX算力中心""XX工厂""XX商场"），记录电压等级、用电容量、计费方式、月度电费与度电单价，供招商洽谈与用户接待时快速参考。可在上方完成电费计算后一键保存，也可点击下方按钮手动新增。数据保存在本地浏览器中，请勿录入真实企业名称。</p>
+<div style="margin-bottom:12px"><button class="btn" onclick="openCaseForm(false)">＋ 新增案例</button></div>
+<div class="case-table-wrap" id="caseTableArea"></div>
+</div>
 </div>
 
 <!-- ===== 图片放大查看 ===== -->
 <div class="lightbox" id="lightbox" onclick="closeLightbox()">
 <span class="close-btn">×</span>
 <img src="" alt="公告截图">
+</div>
+
+<!-- ===== 典型用户案例编辑弹窗 ===== -->
+<div class="case-modal" id="caseModal" onclick="if(event.target===this)closeCaseForm()">
+<div class="case-card">
+<h3 id="caseModalTitle">新增典型用户案例</h3>
+<div class="case-form">
+<div class="full"><label>用户名称（脱敏，如"XX算力中心""XX工厂""XX商场"）</label><input id="cfName" placeholder="XX算力中心" maxlength="30"></div>
+<div><label>用电分类</label><select id="cfCat" onchange="cfCatChange()"></select></div>
+<div><label>电压等级</label><select id="cfVolt"></select></div>
+<div><label>数据月份</label><select id="cfMonth"></select></div>
+<div><label>月下网电量 (kWh)</label><input type="number" id="cfElec" min="0"></div>
+<div><label>月电度电费 (元)</label><input type="number" id="cfElecFee" min="0"></div>
+<div id="cfDemandBox"><label>最大需量 (kW)</label><input type="number" id="cfDemand" min="0"></div>
+<div id="cfCapBox"><label>变压器容量 (kVA)</label><input type="number" id="cfCap" min="0"></div>
+<div id="cfBillingBox"><label>计费方式</label><select id="cfBilling"><option>按最大需量</option><option>按变压器容量</option></select></div>
+<div><label>月基本电费 (元，单一制填0)</label><input type="number" id="cfBaseFee" min="0"></div>
+</div>
+<p style="font-size:12px;color:#999;margin-top:10px">月电费合计与度电单价保存后自动计算：度电单价 =（电度电费 + 基本电费）÷ 月下网电量。</p>
+<div class="case-actions">
+<button class="btn-case plain" onclick="closeCaseForm()">取消</button>
+<button class="btn-case primary" onclick="submitCase()">保存案例</button>
+</div>
+</div>
 </div>
 
 <script>
@@ -328,7 +378,7 @@ function switchTab(i){
   document.querySelectorAll('.panel').forEach((p,j)=>p.classList.toggle('active',i===j));
   if(i===1)renderFileList();
   if(i===2)renderTrend();
-  if(i===3){initCalc();}
+  if(i===3){initCalc();renderCases();}
 }
 
 // ===================== 初始化下拉框 =====================
@@ -663,6 +713,8 @@ function initCalc(){
 }
 
 function calcBill(mode){
+  // 暂存计算结果供保存典型案例
+  let _ef=0,_bf=0,_demand=0,_cap=0,_billing='单一制';
   const mk=document.getElementById('calcMonth').value;
   const cat=parseInt(document.getElementById('calcCat').value);
   const volt=parseInt(document.getElementById('calcVolt').value);
@@ -685,6 +737,7 @@ function calcBill(mode){
     const demandFee=demand*row[4];
     const capFee=cap*row[5];
     baseFee=Math.max(demandFee,capFee);
+    _demand=demand;_cap=cap;_billing=(demandFee>=capFee?'按最大需量':'按变压器容量');
     baseDetail=`<div class="bill-row"><span>按最大需量计费 (${demand}kW × ${row[4]}元)</span><span>${demandFee.toFixed(2)} 元</span></div>
     <div class="bill-row"><span>按变压器容量计费 (${cap}kVA × ${row[5]}元)</span><span>${capFee.toFixed(2)} 元</span></div>
     <div class="bill-row"><span>基本电费（取较大值，不受光伏影响）</span><span>${baseFee.toFixed(2)} 元</span></div>`;
@@ -704,6 +757,7 @@ function calcBill(mode){
     const sellSysFee=d.s*gridElec;
     const sellTotal=sellElecFee+baseFee;
     const sellAvg=gridElec>0?sellTotal/gridElec:0;
+    _ef=sellElecFee;_bf=baseFee;
     // 峰谷估算
     const peakElec=gridElec*0.4,valleyElec=gridElec*0.25,flatElec=gridElec*0.35;
     const toUSellFee=sellPeak*peakElec+sellFlat*flatElec+sellValley*valleyElec;
@@ -754,6 +808,7 @@ function calcBill(mode){
     const elecFee=flat*gridElec;
     const total=elecFee+baseFee;
     const avgPrice=gridElec>0?total/gridElec:0;
+    _ef=elecFee;_bf=baseFee;
     const peakElec=gridElec*0.4,valleyElec=gridElec*0.25,flatElec=gridElec*0.35;
     const toUElecFee=peak*peakElec+flat*flatElec+valley*valleyElec;
     const pvSave=pvElec>0?flat*pvElec:0;
@@ -785,9 +840,107 @@ function calcBill(mode){
     </div></div>`;
   }
   document.getElementById('billResultArea').innerHTML=html;
+  // 记录本次计算结果，供"保存为典型用户案例"预填
+  lastCalcResult={mk,cat,volt,elec:gridElec,demand:_demand,cap:_cap,billing:cat===0?_billing:'单一制',elecFee:_ef,baseFee:_bf,total:_ef+_bf};
+  // 在结果卡末尾追加保存按钮
+  const resultCard=document.querySelector('#billResultArea .card');
+  if(resultCard){
+    const btn=document.createElement('button');
+    btn.className='btn-save-case';
+    btn.textContent='💾 保存为典型用户案例';
+    btn.onclick=()=>openCaseForm(true);
+    resultCard.appendChild(btn);
+  }
   // 初始化分时估算
   updateTOUCalc(mode,cat,volt,mk);
 }
+
+// ===================== 典型用户案例 =====================
+const CASE_KEY='typicalCases';
+let lastCalcResult=null;
+function getCases(){try{return JSON.parse(localStorage.getItem(CASE_KEY))||[]}catch(e){return[]}}
+function setCases(c){localStorage.setItem(CASE_KEY,JSON.stringify(c))}
+function escHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function fmtWan(v){return (v/10000).toLocaleString('zh-CN',{maximumFractionDigits:2})}
+
+function renderCases(){
+  const c=getCases();
+  const cnt=document.getElementById('caseCount');
+  if(cnt)cnt.textContent=c.length?('（'+c.length+'个）'):'';
+  const area=document.getElementById('caseTableArea');
+  if(!area)return;
+  if(!c.length){area.innerHTML='<div style="color:#999;font-size:13px;padding:24px;text-align:center;border:2px dashed #e0e0e0;border-radius:12px">暂无案例：可在上方完成电费计算后点击绿色按钮保存，或点击"＋新增案例"手动录入</div>';return}
+  let html='<table><thead><tr><th>用户名称</th><th>用电分类</th><th>电压等级</th><th>报装容量/需量</th><th>计费方式</th><th>月下网电量<br>(万kWh)</th><th>电度电费<br>(万元/月)</th><th>基本电费<br>(万元/月)</th><th>月电费合计<br>(万元)</th><th>度电单价<br>(元/kWh)</th><th>数据月份</th><th>操作</th></tr></thead><tbody>';
+  c.forEach(cs=>{
+    const total=cs.monthElec+cs.monthBase;
+    const avg=cs.elec>0?total/cs.elec:0;
+    const capStr=cs.cat===0?((cs.cap||0).toLocaleString()+'kVA / '+(cs.demand||0).toLocaleString()+'kW'):'—';
+    html+=`<tr><td style="font-weight:600;text-align:left">${escHtml(cs.name)}</td><td>${CATS[cs.cat]||'—'}</td><td>${VOLTS[cs.volt]||'—'}</td><td style="font-size:12px">${capStr}</td><td>${escHtml(cs.billing||'单一制')}</td><td>${fmtWan(cs.elec)}</td><td>${fmtWan(cs.monthElec)}</td><td>${cs.monthBase>0?fmtWan(cs.monthBase):'—'}</td><td style="font-weight:700;color:#667eea">${fmtWan(total)}</td><td style="font-weight:700;color:#e74c3c">${avg.toFixed(4)}</td><td>${cs.month}</td><td><button class="case-del" onclick="deleteCase(${cs.id})">删除</button></td></tr>`;
+  });
+  html+='</tbody></table>';
+  area.innerHTML=html;
+}
+
+function openCaseForm(prefill){
+  document.getElementById('caseModalTitle').textContent=prefill?'保存计算结果为典型案例':'新增典型用户案例';
+  const cSel=document.getElementById('cfCat'),vSel=document.getElementById('cfVolt'),mSel=document.getElementById('cfMonth');
+  if(cSel.options.length===0){
+    CATS.forEach((c,i)=>cSel.add(new Option(c,i)));
+    VOLTS.forEach((v,i)=>vSel.add(new Option(v,i)));
+    Object.keys(D).sort().reverse().forEach(k=>mSel.add(new Option(getMonthLabel(k),k)));
+  }
+  const set=(id,v)=>{document.getElementById(id).value=v};
+  if(prefill&&lastCalcResult){
+    const r=lastCalcResult;
+    set('cfName','');cSel.value=r.cat;vSel.value=r.volt;mSel.value=r.mk;
+    set('cfElec',r.elec||0);set('cfDemand',r.demand||0);set('cfCap',r.cap||0);
+    set('cfElecFee',(r.elecFee||0).toFixed(2));set('cfBaseFee',(r.baseFee||0).toFixed(2));
+    if(r.billing)document.getElementById('cfBilling').value=r.billing;
+  }else{
+    set('cfName','');cSel.value=0;vSel.value=1;
+    mSel.value=Object.keys(D).sort().reverse()[0];
+    ['cfElec','cfDemand','cfCap','cfElecFee','cfBaseFee'].forEach(id=>set(id,0));
+    document.getElementById('cfBilling').value='按最大需量';
+  }
+  cfCatChange();
+  document.getElementById('caseModal').style.display='flex';
+  setTimeout(()=>document.getElementById('cfName').focus(),50);
+}
+
+function cfCatChange(){
+  const cat=parseInt(document.getElementById('cfCat').value);
+  const two=cat===0;
+  ['cfDemandBox','cfCapBox','cfBillingBox'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=two?'':'none'});
+}
+
+function closeCaseForm(){document.getElementById('caseModal').style.display='none'}
+
+function submitCase(){
+  const name=document.getElementById('cfName').value.trim();
+  if(!name){alert('请填写用户名称（脱敏名称，如"XX工厂"）');return}
+  const cat=parseInt(document.getElementById('cfCat').value);
+  const volt=parseInt(document.getElementById('cfVolt').value);
+  const elec=parseFloat(document.getElementById('cfElec').value)||0;
+  if(elec<=0){alert('月下网电量需大于0（用于计算度电单价）');return}
+  const cs={
+    id:Date.now(),name,cat,volt,elec,
+    demand:cat===0?(parseFloat(document.getElementById('cfDemand').value)||0):0,
+    cap:cat===0?(parseFloat(document.getElementById('cfCap').value)||0):0,
+    billing:cat===0?document.getElementById('cfBilling').value:'单一制',
+    monthElec:parseFloat(document.getElementById('cfElecFee').value)||0,
+    monthBase:cat===0?(parseFloat(document.getElementById('cfBaseFee').value)||0):0,
+    month:document.getElementById('cfMonth').value
+  };
+  const list=getCases();list.push(cs);setCases(list);
+  closeCaseForm();renderCases();
+}
+
+function deleteCase(id){
+  if(!confirm('确认删除该典型案例？'))return;
+  setCases(getCases().filter(c=>c.id!==id));renderCases();
+}
+
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeCaseForm();});
 
 // 低谷百分比自动补全 = 100 - 高峰 - 平段
 function autoFillValley(){
