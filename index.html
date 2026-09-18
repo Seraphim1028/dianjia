@@ -373,19 +373,28 @@ function renderPriceTable(){
 
 function renderCostBreakdown(mk){
   const d=D[mk];
+  // 按当前筛选条件确定电价构成行（同步下拉框选择）
+  const fc=document.getElementById('selCat').value;
+  const fv=document.getElementById('selVolt').value;
+  let row=null;
+  if(fc!=-1&&fv!=-1)row=d.r.find(r=>r[0]==fc&&r[1]==fv);
+  if(!row&&fv!=-1)row=d.r.find(r=>r[0]===0&&r[1]==fv)||d.r.find(r=>r[1]==fv);
+  if(!row&&fc!=-1)row=d.r.find(r=>r[0]==fc);
+  if(!row)row=d.r.find(r=>r[0]===0&&r[1]===1)||d.r[0];
+  const rowLabel=CATS[row[0]]+' '+VOLTS[row[1]];
   const html=`
   <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
     <span class="cost-badge buy">代理购电价格 ${d.b.toFixed(4)} 元/kWh</span>
     <span class="cost-badge trans">上网环节线损 ${d.l.toFixed(4)} 元/kWh</span>
-    <span class="cost-badge flat">输配电价（1-10kV两部制） ${d.r.find(r=>r[0]===0&&r[1]===1)[3].toFixed(4)} 元/kWh</span>
+    <span class="cost-badge flat">输配电价（${rowLabel}） ${row[3].toFixed(4)} 元/kWh</span>
     <span class="cost-badge govt">政府性基金及附加 ${d.g.toFixed(4)} 元/kWh</span>
     <span class="cost-badge sys">系统运行费用折价 ${d.s.toFixed(4)} 元/kWh</span>
   </div>
-  <div class="info-box">未分时电度价格 = 代理购电价格 + 上网环节线损费用 + 输配电价 + 政府性基金及附加 + 系统运行费用折价 = <b>${(d.b+d.l+d.r.find(r=>r[0]===0&&r[1]===1)[3]+d.g+d.s).toFixed(4)}</b> 元/kWh<br>
+  <div class="info-box">未分时电度价格（${rowLabel}） = 代理购电价格 + 上网环节线损费用 + 输配电价 + 政府性基金及附加 + 系统运行费用折价 = <b>${(d.b+d.l+row[3]+d.g+d.s).toFixed(4)}</b> 元/kWh<br>
   分时电价以代理购电价格为基数浮动：高峰上浮（两部制80%、单一制≥100kVA上70%、<100kVA上60%），低谷统一下浮65%</div>`;
   document.getElementById('costBreakdown').innerHTML=html;
   // 堆叠柱状图
-  const buyP=d.b,loss=d.l,trans=d.r.find(r=>r[0]===0&&r[1]===1)[3],gov=d.g,sys=d.s;
+  const buyP=d.b,loss=d.l,trans=row[3],gov=d.g,sys=d.s;
   if(costChartObj)costChartObj.destroy();
   costChartObj=new Chart(document.getElementById('costChart'),{
     type:'bar',
