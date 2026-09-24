@@ -106,13 +106,42 @@ tr:hover td{background:#f8f9ff}
 .btn-case.plain{background:#f0f0f0;color:#555}
 .btn-case.plain:hover{background:#e4e4e4}
 @media(max-width:600px){.case-form{grid-template-columns:1fr}}
+
+/* ===== 视图模式切换（默认手机版） ===== */
+.view-switch{display:flex;justify-content:center;padding:6px 16px 0}
+.vs-box{display:inline-flex;background:rgba(255,255,255,.18);border-radius:20px;padding:4px;backdrop-filter:blur(6px)}
+.vs-btn{padding:6px 18px;border:none;border-radius:16px;background:transparent;color:rgba(255,255,255,.85);font-size:13px;cursor:pointer;transition:all .3s;white-space:nowrap}
+.vs-btn:hover{color:#fff;background:rgba(255,255,255,.15)}
+.vs-btn.active{background:#fff;color:#667eea;font-weight:700;box-shadow:0 3px 10px rgba(0,0,0,.18)}
+#priceTableArea{overflow-x:auto;-webkit-overflow-scrolling:touch}
+#priceTableArea table{min-width:640px}
+.case-table-wrap table{min-width:860px}
+.view-mobile .container{max-width:520px;padding:0 12px 32px}
+.view-mobile .header{padding:22px 12px 8px}
+.view-mobile .header h1{font-size:24px;letter-spacing:2px}
+.view-mobile .header p{font-size:12px;padding:0 10px}
+.view-mobile .tabs{gap:8px;padding:12px 10px}
+.view-mobile .tab-btn{padding:9px 16px;font-size:13px;border-radius:20px}
+.view-mobile .card{padding:16px 14px;border-radius:16px;margin-bottom:14px}
+.view-mobile .card h2{font-size:17px}
+.view-mobile .chart-container{height:300px!important}
+.view-mobile .bill-row{font-size:13px}
+.view-mobile .file-list{grid-template-columns:1fr}
+.view-mobile .case-form{grid-template-columns:1fr}
+.view-pc .container{max-width:1200px}
 </style>
 </head>
 <body>
 <div class="header">
 <h1>⚡ 江苏省工商业电价看板</h1>
 
-<p>国网江苏省电力有限公司 · 代理购电工商业用户电价公示数据 · 金湖县域应用</p>
+  <p>国网江苏省电力有限公司 · 代理购电工商业用户电价公示数据 · 金湖县域应用</p>
+  <div class="view-switch">
+    <div class="vs-box">
+      <button class="vs-btn active" id="vsMobile" onclick="setViewMode('mobile')">📱 手机版</button>
+      <button class="vs-btn" id="vsPC" onclick="setViewMode('pc')">💻 电脑版</button>
+    </div>
+  </div>
 </div>
 <div class="tabs">
 <button class="tab-btn active" onclick="switchTab(0)">📊 电价查询</button>
@@ -376,9 +405,30 @@ let pvChart=null,trendChartObj=null,buyChart=null,costChartObj=null,timeLineChar
 function switchTab(i){
   document.querySelectorAll('.tab-btn').forEach((b,j)=>b.classList.toggle('active',i===j));
   document.querySelectorAll('.panel').forEach((p,j)=>p.classList.toggle('active',i===j));
+  if(i===0)renderPriceTable();
   if(i===1)renderFileList();
   if(i===2)renderTrend();
   if(i===3){initCalc();renderCases();}
+}
+
+// ===================== 视图模式（手机版/电脑版，默认手机版） =====================
+function setViewMode(mode,save){
+  const isMobile=mode==='mobile';
+  document.body.classList.toggle('view-mobile',isMobile);
+  document.body.classList.toggle('view-pc',!isMobile);
+  const bm=document.getElementById('vsMobile'),bp=document.getElementById('vsPC');
+  if(bm)bm.classList.toggle('active',isMobile);
+  if(bp)bp.classList.toggle('active',!isMobile);
+  if(save===undefined)save=true;
+  if(save){try{localStorage.setItem('dianjiaViewMode',isMobile?'mobile':'pc')}catch(e){}}
+  // 容器宽度变化后，重建/自适应当前可见面板的图表
+  setTimeout(()=>{
+    const active=document.querySelector('.panel.active');
+    if(!active)return;
+    if(active.id==='panel0'){if(pvChart)renderPriceTable()}
+    else if(active.id==='panel2'){if(trendChartObj)renderTrend()}
+    else if(active.id==='panel3'){if(dailyChartObj)dailyChartObj.resize()}
+  },80);
 }
 
 // ===================== 初始化下拉框 =====================
@@ -460,7 +510,7 @@ function renderCostBreakdown(mk){
     },
     options:{
       responsive:true,maintainAspectRatio:false,indexAxis:'y',
-      plugins:{legend:{position:'right',labels:{font:{size:12},padding:8}},
+      plugins:{legend:{position:document.body.classList.contains('view-mobile')?'bottom':'right',labels:{font:{size:12},padding:8}},
         tooltip:{callbacks:{label:(c)=>`${c.dataset.label}: ${c.raw.toFixed(4)} 元/kWh`}}},
       scales:{x:{stacked:true,title:{display:true,text:'元/kWh'},beginAtZero:true},
         y:{stacked:true}}
@@ -499,7 +549,7 @@ function renderTimeInfo(mk){
       plugins:{legend:{display:false},
         tooltip:{callbacks:{label:(c)=>{const h=labels[c.dataIndex];const t=slots[c.dataIndex];return t==='peak'?h+' 高峰':t==='flat'?h+' 平段':t==='valley'?h+' 低谷':h}}}},
       scales:{x:{title:{display:true,text:'时刻'},grid:{display:false}},
-        y:{display:false,min:0,max:1.2},stacked:false}
+        y:{display:false,min:0,max:1.2}}
     }
   });
 }
@@ -1082,6 +1132,11 @@ function renderDailyChart(mode,touPeak,touFlat,touValley){
 }
 
 // ===================== 启动 =====================
+// 视图优先级：链接锚点(#pc/#mobile) > 上次选择(localStorage) > 默认手机版
+try{var _savedView=localStorage.getItem('dianjiaViewMode')}catch(e){var _savedView=null}
+var _hash=(location.hash||'').toLowerCase();
+var _hashView=_hash.indexOf('pc')>-1?'pc':(_hash.indexOf('mobile')>-1?'mobile':null);
+setViewMode(_hashView!==null?_hashView:(_savedView==='pc'?'pc':'mobile'),false);
 init();
 renderPriceTable();
 </script>
