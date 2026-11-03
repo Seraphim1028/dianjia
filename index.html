@@ -136,14 +136,14 @@ tr:hover td{background:#f8f9ff}
 .cn-note{font-size:12px;color:#999;line-height:1.9;margin-top:12px}
 .cn-summary{font-size:13px;color:#555;line-height:1.8;margin-bottom:10px;padding:10px 12px;background:linear-gradient(135deg,rgba(102,126,234,.06),rgba(118,75,162,.06));border-radius:10px}
 #cnTableArea{overflow-x:auto;-webkit-overflow-scrolling:touch}
-.cn-table{width:100%;border-collapse:collapse;font-size:13px;min-width:660px}
+.cn-table{width:100%;border-collapse:collapse;font-size:13px;min-width:880px}
 .cn-table th{background:#f0f2f8;padding:9px 8px;font-size:12px;color:#555;white-space:nowrap;text-align:center;border-bottom:2px solid #e2e6f0}
 .cn-table td{padding:8px 8px;border-bottom:1px solid #eef0f6;text-align:center;white-space:nowrap}
 .cn-table td:nth-child(2){text-align:left}
 .cn-js-row{background:rgba(102,126,234,.10)}
 .cn-js-row td{font-weight:600}
 .cn-note-cell{font-size:11px;color:#999;text-align:left}
-.view-mobile #cnMap{height:350px}
+.view-mobile #cnMap{height:380px}
 .view-mobile .cn-table{font-size:12px}
 </style>
 </head>
@@ -326,8 +326,12 @@ tr:hover td{background:#f8f9ff}
 <option value="valley">低谷时段电价</option>
 </select></div>
 <div><label>电压等级</label>
-<select id="cnVolt" title="当前收录两部制1-10(20)千伏口径，其他电压等级将陆续补充">
-<option>两部制 1-10(20)千伏</option>
+<select id="cnVolt" onchange="renderCNMap()">
+<option value="1" selected>1-10(20)千伏</option>
+<option value="0">不满1千伏</option>
+<option value="2">35千伏</option>
+<option value="3">110千伏</option>
+<option value="4">220千伏及以上</option>
 </select></div>
 </div>
 <p class="cn-hint" id="cnHint"></p>
@@ -338,7 +342,7 @@ tr:hover td{background:#f8f9ff}
 <h2>全国电价明细表</h2>
 <div id="cnSummary" class="cn-summary"></div>
 <div id="cnTableArea"></div>
-<p class="cn-note">单位：元/kWh。数据口径：各省当月电网企业代理购电工商业用户电价公告；到户价为两部制（大工业）1-10(20)千伏电度电价（含输配电价、政府性基金及附加、系统运行费），南网省份取其公告两部制口径，深圳为独立价区。河北/冀北、蒙西/蒙东为不同电网企业，地图分别按国网河北、内蒙古电力（蒙西）着色。西藏及港澳台电力体制不同，暂无适用数据。部分省份执行尖峰/深谷时段电价，表中仅列高峰/低谷。数据经北极星电力市场网、储能与电力市场、Mysteel等汇总转载核验。</p>
+<p class="cn-note">单位：电价为元/kWh，需量为元/kW·月，容量为元/kVA·月。口径：各省当月电网代理购电公告；到户价与需量/容量为所选电压等级的两部制（大工业）口径（含输配电价、基金、系统运行费）。部分省份无某档（北京/广东35-110合并、吉林66千伏档、辽宁无35千伏档、11月江苏两部制无不满1千伏档），该档下显示为空。深圳取大工业高供高计口径。河北/冀北、蒙西/蒙东为不同电网企业，地图按国网河北、蒙西着色。西藏及港澳台暂无适用数据。部分省份执行尖峰/深谷时段，仅列高峰/低谷。地图支持滚轮缩放与拖拽。数据经北极星/储能与电力市场/Mysteel汇总核验，并逐省通过“到户价=构成项加和”验算。</p>
 </div>
 </div>
 
@@ -466,48 +470,50 @@ function switchTab(i){
 
 // ===================== 全国各省电价（首期2026年11月） =====================
 // 数据来源：各省电网公司当月代理购电工商业用户电价公告（经北极星电力市场网、储能与电力市场、Mysteel等汇总转载核验）
-// 口径：b=代理购电价格（不分电压）；p/peak/valley=两部制（大工业）1-10(20)千伏到户电度电价（平段/未分时、高峰、低谷）
+// 口径：b=代理购电价格（不分电压）；v=各电压等级（两部制/大工业）到户电度电价及容需量电价
+// v键：0=不满1kV 1=1-10(20)kV 2=35kV 3=110kV 4=220kV+；p=平段/未分时 peak=高峰 valley=低谷 demand=需量(元/kW·月) cap=容量(元/kVA·月)
 const CN={
 "2026-11":{
-"北京":{b:0.3872,p:0.6186,peak:0.8509,valley:0.3863},
-"天津":{b:0.3896,p:0.7187,peak:1.0503,valley:0.3870},
-"河北":{b:0.4077,p:0.6504,peak:0.8891,valley:0.3272},
-"冀北":{b:0.4068,p:0.6140,peak:0.8899,valley:0.3382},
-"山西":{b:0.3383,p:0.5701,peak:0.7483,valley:0.4067},
-"山东":{b:0.4742,p:0.5777,peak:0.9213,valley:0.2340},
-"河南":{b:0.4650,p:0.6973,peak:1.1513,valley:0.3505},
-"辽宁":{b:0.3015,p:0.5874,peak:0.7381,valley:0.4366},
-"吉林":{b:0.3334,p:0.6952,peak:0.8785,valley:0.5119},
-"黑龙江":{b:0.3082,p:0.6336,peak:0.7877,valley:0.4795},
-"上海":{b:0.4190,p:0.6455,peak:0.9943,valley:0.3549},
-"江苏":{b:0.4121,p:0.6428,peak:0.9725,valley:0.3749},
-"浙江":{b:0.4128,p:0.6251,peak:1.0253,valley:0.3426},
-"安徽":{b:0.4145,p:0.6411,peak:1.0459,valley:0.3031},
-"福建":{b:0.4647,p:0.7356,peak:1.0052,valley:0.4428},
-"江西":{b:0.4170,p:0.6657,peak:0.9159,valley:0.4155},
-"湖北":{b:0.3874,p:0.6378,peak:0.8365,valley:0.4270},
-"湖南":{b:0.3802,p:0.7150,peak:1.0555,valley:0.3745},
-"四川":{b:0.3370,p:0.6037,peak:0.9015,valley:0.3060},
-"重庆":{b:0.4135,p:0.6613,peak:1.0003,valley:0.3110},
-"陕西":{b:0.3390,p:0.6433,peak:0.8806,valley:0.4060},
-"甘肃":{b:0.2484,p:0.4406,peak:0.4780,valley:0.2919},
-"宁夏":{b:0.3259,p:0.4655,peak:0.4657,valley:0.3100},
-"青海":{b:0.2182,p:0.3499,peak:0.4874,valley:0.2081},
-"新疆":{b:0.2483,p:0.4537,peak:0.6354,valley:0.2719},
-"广东":{b:0.4910,p:0.7199,peak:1.2044,valley:0.2908},
-"深圳":{b:0.4910,p:0.5845,peak:0.9674,valley:0.2016},
-"广西":{b:0.4464,p:0.7487,peak:0.9306,valley:0.5668},
-"云南":{b:0.3330,p:0.5334,peak:0.6999,valley:0.3668},
-"贵州":{b:0.3972,p:0.5690,peak:0.8184,valley:0.3196},
-"海南":{b:0.4085,p:0.6741,peak:0.9601,valley:0.4290},
-"蒙西":{b:0.3003,p:0.4234,peak:0.6276,valley:0.2673},
-"蒙东":{b:0.2038}
+"北京":{b:0.3872,v:{"1":{p:0.6186,peak:0.8509,valley:0.3863,demand:52,cap:33},"2":{p:0.5786,peak:0.8109,valley:0.3463,demand:48,cap:30},"3":{p:0.5786,peak:0.8109,valley:0.3463,demand:48,cap:30},"4":{p:0.5636,peak:0.7959,valley:0.3313,demand:45,cap:28}}},
+"天津":{b:0.3896,v:{"0":{p:0.7714,peak:1.1346,valley:0.4081,demand:43.2,cap:27},"1":{p:0.7187,peak:1.0503,valley:0.3870,demand:43.2,cap:27},"2":{p:0.6958,peak:1.0136,valley:0.3779,demand:40,cap:25},"3":{p:0.6820,peak:0.9916,valley:0.3723,demand:40,cap:25},"4":{p:0.6608,peak:0.9576,valley:0.3639,demand:36.8,cap:23}}},
+"河北":{b:0.4077,v:{"0":{p:0.6754,peak:0.9480,valley:0.4028,demand:36.8,cap:23},"1":{p:0.6504,peak:0.9230,valley:0.3778,demand:35.2,cap:22},"2":{p:0.6254,peak:0.8980,valley:0.3528,demand:33.6,cap:21},"3":{p:0.6004,peak:0.8730,valley:0.3278,demand:32,cap:20},"4":{p:0.5754,peak:0.8480,valley:0.3028,demand:30.4,cap:19}}},
+"冀北":{b:0.4068,v:{"0":{p:0.6360,peak:0.9119,valley:0.3602,demand:39.4,cap:24.6},"1":{p:0.6140,peak:0.8899,valley:0.3382,demand:37.8,cap:23.6},"2":{p:0.5920,peak:0.8679,valley:0.3162,demand:36.2,cap:22.6},"3":{p:0.5700,peak:0.8459,valley:0.2942,demand:34.6,cap:21.6},"4":{p:0.5480,peak:0.8239,valley:0.2722,demand:33,cap:20.6}}},
+"山西":{b:0.3383,v:{"1":{p:0.5700,peak:0.7483,valley:0.4067,demand:34.8,cap:21.8},"2":{p:0.5461,peak:0.7183,valley:0.3761,demand:34,cap:21.3},"3":{p:0.5160,peak:0.6933,valley:0.3532,demand:31.6,cap:19.8},"4":{p:0.4957,peak:0.6733,valley:0.3372,demand:30,cap:18.8}}},
+"山东":{b:0.4742,v:{"1":{p:0.6199,peak:0.9969,valley:0.2429,demand:30,cap:23},"2":{p:0.6049,peak:0.9719,valley:0.2379,demand:29,cap:22.5},"3":{p:0.5899,peak:0.9469,valley:0.2329,demand:26,cap:21.5},"4":{p:0.5749,peak:0.9219,valley:0.2279,demand:22,cap:20}}},
+"河南":{b:0.4650,v:{"1":{p:0.6973,peak:1.1513,valley:0.3505,demand:40,cap:25},"2":{p:0.6710,peak:1.1060,valley:0.3387,demand:36.8,cap:23},"3":{p:0.6443,peak:1.0601,valley:0.3267,demand:33.6,cap:21},"4":{p:0.6298,peak:1.0352,valley:0.3202,demand:30.4,cap:19}}},
+"辽宁":{b:0.3015,v:{"0":{p:0.6003,peak:0.7510,valley:0.4495,demand:38.4,cap:24},"1":{p:0.5874,peak:0.7381,valley:0.4366,demand:38.4,cap:24},"3":{p:0.5661,peak:0.7168,valley:0.4153,demand:36.8,cap:23},"4":{p:0.5392,peak:0.6899,valley:0.3884,demand:35.2,cap:22}}},
+"吉林":{b:0.3334,v:{"1":{p:0.6952,peak:0.8785,valley:0.5119,demand:38.4,cap:24},"3":{p:0.6652,peak:0.8485,valley:0.4819,demand:36.8,cap:23},"4":{p:0.6552,peak:0.8385,valley:0.4719,demand:36.8,cap:23}}},
+"黑龙江":{b:0.3082,v:{"1":{p:0.6336,peak:0.7877,valley:0.4795,demand:36.8,cap:23},"2":{p:0.6122,peak:0.7663,valley:0.4581,demand:36.8,cap:23},"3":{p:0.5977,peak:0.7518,valley:0.4436,demand:35.2,cap:22},"4":{p:0.5714,peak:0.7255,valley:0.4173,demand:35.2,cap:22}}},
+"上海":{b:0.4190,v:{"0":{p:0.6613,peak:1.0196,valley:0.3628,demand:48,cap:30},"1":{p:0.6455,peak:0.9943,valley:0.3549,demand:44.8,cap:28},"2":{p:0.6100,peak:0.9375,valley:0.3371,demand:41.6,cap:26},"3":{p:0.5785,peak:0.8871,valley:0.3214,demand:38.4,cap:24},"4":{p:0.5683,peak:0.8708,valley:0.3163,demand:35.2,cap:22}}},
+"江苏":{b:0.4121,v:{"1":{p:0.6428,peak:0.9725,valley:0.3749,demand:51.2,cap:32},"2":{p:0.6178,peak:0.9475,valley:0.3499,demand:48,cap:30},"3":{p:0.5918,peak:0.9215,valley:0.3239,demand:44.8,cap:28},"4":{p:0.5648,peak:0.8945,valley:0.2969,demand:41.6,cap:26}}},
+"浙江":{b:0.4128,v:{"1":{p:0.6251,peak:1.0253,valley:0.3426,demand:47.2,cap:29.5},"2":{p:0.5896,peak:0.9898,valley:0.3071,demand:44,cap:27.5},"3":{p:0.5768,peak:0.9770,valley:0.2943,demand:40.8,cap:25.5},"4":{p:0.5664,peak:0.9666,valley:0.2839,demand:37.6,cap:23.5}}},
+"安徽":{b:0.4145,v:{"1":{p:0.6411,peak:1.0459,valley:0.3031,demand:46.4,cap:29},"2":{p:0.6157,peak:1.0017,valley:0.2934,demand:43.2,cap:27},"3":{p:0.5896,peak:0.9562,valley:0.2834,demand:40.8,cap:25.5},"4":{p:0.5635,peak:0.9108,valley:0.2735,demand:38.4,cap:24}}},
+"福建":{b:0.4647,v:{"1":{p:0.7356,peak:1.0052,valley:0.4428,demand:40,cap:25},"2":{p:0.7156,peak:0.9852,valley:0.4228,demand:39,cap:24.4},"3":{p:0.6906,peak:0.9602,valley:0.3978,demand:38,cap:23.8},"4":{p:0.6599,peak:0.9295,valley:0.3671,demand:37,cap:23.1}}},
+"江西":{b:0.4170,v:{"1":{p:0.6657,peak:0.9159,valley:0.4155,demand:42.3,cap:26.4},"2":{p:0.6457,peak:0.8959,valley:0.3955,demand:40.6,cap:25.4},"3":{p:0.6257,peak:0.8759,valley:0.3755,demand:39.1,cap:24.4},"4":{p:0.6107,peak:0.8609,valley:0.3605,demand:37.5,cap:23.4}}},
+"湖北":{b:0.3874,v:{"1":{p:0.6378,peak:0.8365,valley:0.4270,demand:42,cap:26.3},"2":{p:0.6180,peak:0.8167,valley:0.4072,demand:42,cap:26.3},"3":{p:0.5999,peak:0.7986,valley:0.3891,demand:39,cap:24.4},"4":{p:0.5809,peak:0.7796,valley:0.3701,demand:39,cap:24.4}}},
+"湖南":{b:0.3802,v:{"1":{p:0.7150,peak:1.0555,valley:0.3745,demand:35.4,cap:22.1},"2":{p:0.6850,peak:1.0075,valley:0.3625,demand:35.4,cap:22.1},"3":{p:0.6560,peak:0.9611,valley:0.3509,demand:32.2,cap:20.1},"4":{p:0.6308,peak:0.9208,valley:0.3408,demand:32.2,cap:20.1}}},
+"四川":{b:0.3370,v:{"1":{p:0.6037,peak:0.9015,valley:0.3060,demand:35,cap:22},"2":{p:0.5771,peak:0.8590,valley:0.2953,demand:30,cap:19},"3":{p:0.5290,peak:0.7820,valley:0.2761,demand:27,cap:17},"4":{p:0.5112,peak:0.7535,valley:0.2690,demand:24,cap:15}}},
+"重庆":{b:0.4135,v:{"1":{p:0.6613,peak:1.0003,valley:0.3110,demand:35.2,cap:22},"2":{p:0.6354,peak:0.9588,valley:0.3011,demand:35.2,cap:22},"3":{p:0.6160,peak:0.9278,valley:0.2938,demand:32,cap:20},"4":{p:0.5966,peak:0.8967,valley:0.2864,demand:32,cap:20}}},
+"陕西":{b:0.3390,v:{"1":{p:0.6433,peak:0.8806,valley:0.4060,demand:37.6,cap:23.5},"2":{p:0.6223,peak:0.8596,valley:0.3850,demand:37.6,cap:23.5},"3":{p:0.6023,peak:0.8396,valley:0.3650,demand:32.8,cap:20.5},"4":{p:0.5893,peak:0.8266,valley:0.3520,demand:32.8,cap:20.5}}},
+"甘肃":{b:0.2484,v:{"1":{p:0.4406,peak:0.4780,valley:0.2919,demand:38.4,cap:24},"2":{p:0.4266,peak:0.4640,valley:0.2779,demand:36.8,cap:23},"3":{p:0.4142,peak:0.4516,valley:0.2655,demand:32.8,cap:20.5},"4":{p:0.4036,peak:0.4410,valley:0.2549,demand:32.8,cap:20.5}}},
+"宁夏":{b:0.3259,v:{"1":{p:0.4655,peak:0.4657,valley:0.3100,demand:28.8,cap:18},"2":{p:0.4501,peak:0.4503,valley:0.2946,demand:28.8,cap:18},"3":{p:0.4319,peak:0.4321,valley:0.2764,demand:25.6,cap:16},"4":{p:0.4243,peak:0.4245,valley:0.2688,demand:25.6,cap:16}}},
+"青海":{b:0.2182,v:{"1":{p:0.3499,peak:0.4874,valley:0.2081,demand:35.2,cap:22},"2":{p:0.3439,peak:0.4814,valley:0.2021,demand:33.6,cap:21},"3":{p:0.3339,peak:0.4714,valley:0.1921,demand:32.8,cap:20.5},"4":{p:0.3228,peak:0.4603,valley:0.1810,demand:31.2,cap:19.5}}},
+"新疆":{b:0.2483,v:{"1":{p:0.4537,peak:0.6354,valley:0.2719,demand:32,cap:20},"2":{p:0.4433,peak:0.6250,valley:0.2615,demand:32,cap:20},"3":{p:0.4143,peak:0.5960,valley:0.2325,demand:30.4,cap:19},"4":{p:0.3820,peak:0.5637,valley:0.2002,demand:30.4,cap:19}}},
+"广东":{b:0.4910,v:{"1":{p:0.7199,peak:1.2044,valley:0.2908,demand:36.1,cap:22.6},"2":{p:0.6947,peak:1.1616,valley:0.2812,demand:31,cap:19.4},"3":{p:0.6947,peak:1.1616,valley:0.2812,demand:31,cap:19.4},"4":{p:0.6669,peak:1.1143,valley:0.2707,demand:26.1,cap:16.3}}},
+"深圳":{b:0.4910,v:{"1":{p:0.6645,peak:1.0322,valley:0.2465,demand:46,cap:23},"2":{p:0.6445,peak:1.0002,valley:0.2325,demand:42,cap:22},"3":{p:0.6345,peak:0.9842,valley:0.2255,demand:42,cap:22},"4":{p:0.6245,peak:0.9682,valley:0.2185,demand:42,cap:22}}},
+"广西":{b:0.4464,v:{"1":{p:0.7487,peak:0.9306,valley:0.5668,demand:38.7,cap:24.2},"2":{p:0.7065,peak:0.8884,valley:0.5246,demand:37.3,cap:23.3},"3":{p:0.6788,peak:0.8607,valley:0.4969,demand:34.2,cap:21.4},"4":{p:0.6304,peak:0.8123,valley:0.4485,demand:32,cap:20}}},
+"云南":{b:0.3330,v:{"0":{p:0.5334,peak:0.6999,valley:0.3668,demand:37.6,cap:23.5},"1":{p:0.5334,peak:0.6999,valley:0.3668,demand:37.6,cap:23.5},"2":{p:0.5083,peak:0.6748,valley:0.3417,demand:37.6,cap:23.5},"3":{p:0.4771,peak:0.6436,valley:0.3105,demand:36,cap:22.5},"4":{p:0.4563,peak:0.6228,valley:0.2897,demand:36,cap:22.5}}},
+"贵州":{b:0.3972,v:{"1":{p:0.5690,peak:0.8184,valley:0.3196,demand:35,cap:21.9},"2":{p:0.5549,peak:0.8043,valley:0.3055,demand:33,cap:20.6},"3":{p:0.5172,peak:0.7666,valley:0.2678,demand:31,cap:19.4},"4":{p:0.4920,peak:0.7414,valley:0.2426,demand:30,cap:18.8}}},
+"海南":{b:0.4085,v:{"1":{p:0.6741,peak:0.9601,valley:0.4290,demand:41.6,cap:26},"2":{p:0.6573,peak:0.9433,valley:0.4122,demand:38.4,cap:24},"3":{p:0.6386,peak:0.9246,valley:0.3935,demand:35.2,cap:22},"4":{p:0.6095,peak:0.8955,valley:0.3644,demand:32,cap:20}}},
+"蒙西":{b:0.3003,v:{"0":{p:0.4323,peak:0.6365,valley:0.2762,demand:34.4,cap:21.5},"1":{p:0.4234,peak:0.6276,valley:0.2673,demand:32.8,cap:20.5},"2":{p:0.4084,peak:0.6126,valley:0.2523,demand:32.8,cap:20.5},"3":{p:0.3967,peak:0.6009,valley:0.2406,demand:31.2,cap:19.5},"4":{p:0.3876,peak:0.5918,valley:0.2315,demand:31.2,cap:19.5}}},
+"蒙东":{b:0.2038,v:{"0":{p:0.4926,peak:0.6312,valley:0.3866,demand:34.4,cap:21.5},"1":{p:0.4534,peak:0.5920,valley:0.3474,demand:32.8,cap:20.5},"2":{p:0.4268,peak:0.5654,valley:0.3208,demand:32.8,cap:20.5},"3":{p:0.4058,peak:0.5444,valley:0.2998,demand:31.2,cap:19.5},"4":{p:0.3789,peak:0.5175,valley:0.2729,demand:31.2,cap:19.5}}}
 }};
 const CN_METRICS={b:'代理购电价格',p:'到户电度电价·平段',peak:'高峰时段电价',valley:'低谷时段电价'};
 const CN_GEO_NAME={'北京市':'北京','天津市':'天津','河北省':'河北','山西省':'山西','内蒙古自治区':'蒙西','辽宁省':'辽宁','吉林省':'吉林','黑龙江省':'黑龙江','上海市':'上海','江苏省':'江苏','浙江省':'浙江','安徽省':'安徽','福建省':'福建','江西省':'江西','山东省':'山东','河南省':'河南','湖北省':'湖北','湖南省':'湖南','广东省':'广东','广西壮族自治区':'广西','海南省':'海南','重庆市':'重庆','四川省':'四川','贵州省':'贵州','云南省':'云南','陕西省':'陕西','甘肃省':'甘肃','青海省':'青海','宁夏回族自治区':'宁夏','新疆维吾尔自治区':'新疆'};
-const CN_NOTE={'河北':'地图取国网河北，冀北单列','冀北':'国网冀北（唐山、张家口等5市）','山东':'另有深谷时段0.0623元','上海':'10千伏档','广东':'珠三角价区到户价，代理购电价全省统一','深圳':'深圳供电局独立价区，地图并入广东','甘肃':'代理购电价格为平段口径','宁夏':'代理购电价格为平段口径','新疆':'代理购电价格为平段口径','蒙西':'内蒙古电力（蒙西），地图按蒙西着色','蒙东':'国网蒙东，暂仅代理购电价格'};
+const CN_NOTE={'北京':'35-110千伏合并档','天津':'35千伏-110千伏(不含)档','河北':'地图取国网河北，冀北单列','冀北':'国网冀北（唐山、张家口等5市）','吉林':'66千伏档，无35/110千伏档','辽宁':'110(66)千伏档，无35千伏档','黑龙江':'110(66)千伏档','蒙东':'国网蒙东','山东':'另有深谷时段电价','上海':'10千伏档，两部制含不满1千伏','广东':'35-110千伏合并档；珠三角价区','深圳':'大工业10千伏取高供高计，另有20千伏档','甘肃':'代理购电价格为平段口径','宁夏':'代理购电价格为平段口径','新疆':'代理购电价格为平段口径','云南':'不满1千伏与1-10千伏同价','陕西':'220(330)千伏档，不含榆林地区'};
 let cnChart=null,cnMapReady=false,cnMapLoading=null;
 function cnFmt(v){return v==null?'—':(+v).toFixed(4)}
+function cnNum(v){return v==null?'—':String(+(+v).toFixed(1))}
 function cnShortName(n){return n.replace(/(省|市|壮族自治区|回族自治区|维吾尔自治区|特别行政区|自治区)$/,'')}
 function cnLoadScript(src,checkVar){return new Promise((res,rej)=>{if(checkVar&&window[checkVar])return res();const s=document.createElement('script');s.src=src;s.onload=()=>res();s.onerror=()=>rej(new Error('加载失败'));document.head.appendChild(s)})}
 async function initCNMap(){
@@ -534,42 +540,52 @@ async function initCNMap(){
 }
 function renderCNMap(){
   if(!cnChart)return;
-  const mk=document.getElementById('cnMetric').value,m=document.getElementById('cnMonth').value,md=CN[m]||{};
+  const mk=document.getElementById('cnMetric').value,m=document.getElementById('cnMonth').value,vk=document.getElementById('cnVolt').value,md=CN[m]||{};
+  const vName=VOLTS[+vk];
   const hint=document.getElementById('cnHint');
-  if(hint)hint.textContent=mk==='b'?'代理购电价格为电网代理购电均价，不分电压等级，反映各省购电成本水平':'到户口径：两部制（大工业）1-10(20)千伏电度电价，含输配电价、政府性基金及附加、系统运行费';
-  const entries=Object.entries(md).filter(e=>e[1][mk]!=null);
-  const vals=entries.map(e=>e[1][mk]);
+  if(hint)hint.textContent=(mk==='b'?'代理购电价格为电网代理购电均价，不分电压等级，反映各省购电成本水平':'到户口径：两部制（大工业）'+vName+'电度电价，含输配电价、政府性基金及附加、系统运行费')+'；地图支持滚轮缩放、拖拽平移';
+  const mval=k=>{const d=md[k];if(!d)return null;if(mk==='b')return d.b;const lv=d.v?d.v[vk]:null;return lv?lv[mk]:null};
+  const entries=Object.keys(md).map(k=>[k,mval(k)]).filter(e=>e[1]!=null);
+  const vals=entries.map(e=>e[1]);
   const mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals);
-  const ranked={};entries.sort((a,b)=>b[1][mk]-a[1][mk]).forEach((e,i)=>ranked[e[0]]=i+1);
-  const data=Object.keys(CN_GEO_NAME).map(geo=>{const k=CN_GEO_NAME[geo],v=md[k];return{name:geo,value:v&&v[mk]!=null?v[mk]:undefined}});
+  const ranked={};entries.sort((a,b)=>b[1]-a[1]).forEach((e,i)=>ranked[e[0]]=i+1);
+  const data=Object.keys(CN_GEO_NAME).map(geo=>{const k=CN_GEO_NAME[geo];return{name:geo,value:mval(k)}});
   cnChart.setOption({
     tooltip:{trigger:'item',triggerOn:'mousemove|click',backgroundColor:'rgba(50,50,50,.88)',textStyle:{fontSize:12,color:'#fff'},borderWidth:0,formatter:p=>{
-      const k=CN_GEO_NAME[p.name],d=md[k];
-      if(!d||d[mk]==null)return '<b>'+p.name+'</b><br/>暂无数据';
-      return '<b>'+p.name+'</b> · '+CN_METRICS[mk]+' '+cnFmt(d[mk])+' 元/kWh（第'+(ranked[k]||'—')+'位）<br/>代理购电：'+cnFmt(d.b)+'<br/>平段到户：'+cnFmt(d.p)+'<br/>高峰：'+cnFmt(d.peak)+'<br/>低谷：'+cnFmt(d.valley);
+      const k=CN_GEO_NAME[p.name],d=md[k],lv=d&&d.v?d.v[vk]:null;
+      if(!d||mval(k)==null)return '<b>'+p.name+'</b><br/>该电压等级暂无数据';
+      let html='<b>'+p.name+'</b> · '+CN_METRICS[mk]+' '+cnFmt(mval(k))+' 元/kWh（第'+(ranked[k]||'—')+'位）<br/>代理购电：'+cnFmt(d.b);
+      if(lv)html+='<br/>平段：'+cnFmt(lv.p)+'｜高峰：'+cnFmt(lv.peak)+'｜低谷：'+cnFmt(lv.valley)+'<br/>最大需量：'+cnNum(lv.demand)+' 元/kW·月｜容量：'+cnNum(lv.cap)+' 元/kVA·月';
+      return html;
     }},
     visualMap:{type:'piecewise',splitNumber:5,min:mn,max:mx,left:10,bottom:10,itemWidth:13,itemHeight:10,textStyle:{fontSize:10,color:'#666'},inRange:{color:['#2c7bb6','#abd9e9','#ffffbf','#fdae61','#d7191c']}},
-    series:[{type:'map',map:'china',roam:false,layoutAnimation:false,
+    series:[{type:'map',map:'china',roam:true,scaleLimit:{min:0.7,max:9},layoutAnimation:false,
       label:{show:true,fontSize:9,color:'#444',formatter:p=>cnShortName(p.name)},
       itemStyle:{borderColor:'#fff',borderWidth:.6,areaColor:'#eee'},
       emphasis:{label:{show:true,fontSize:10,fontWeight:700,color:'#222'},itemStyle:{areaColor:'#f4b183',shadowBlur:8,shadowColor:'rgba(0,0,0,.35)'}},
       data:data}]
   },true);
-  renderCNTable(md,mk,ranked,m);
+  renderCNTable(md,mk,vk,ranked,m);
 }
-function renderCNTable(md,mk,ranked,m){
+function renderCNTable(md,mk,vk,ranked,m){
   const area=document.getElementById('cnTableArea');
   if(!area)return;
-  const rows=Object.keys(md).map(k=>({k:k,b:md[k].b,p:md[k].p,peak:md[k].peak,valley:md[k].valley}));
-  rows.sort((a,b)=>((b[mk]==null?-1:b[mk])-(a[mk]==null?-1:a[mk])));
-  rows.forEach((r,i)=>r.rank=i+1);
-  const hi=rows[0];
-  const lo=rows.filter(r=>r[mk]!=null).pop();
+  const vName=VOLTS[+vk];
+  const mval=k=>{const d=md[k];if(!d)return null;if(mk==='b')return d.b;const lv=d.v?d.v[vk]:null;return lv?lv[mk]:null};
+  const rows=Object.keys(md).map(k=>{const d=md[k],lv=d.v?d.v[vk]:null;return{k:k,b:d.b,lv:lv,val:mval(k)}});
+  rows.sort((a,b)=>(b.val==null?-1:b.val)-(a.val==null?-1:a.val));
+  rows.forEach((r,i)=>r.rank=r.val==null?'—':i+1);
+  const avail=rows.filter(r=>r.val!=null);
+  const hi=avail[0],lo=avail[avail.length-1];
   const jsRow=rows.find(r=>r.k==='江苏')||{};
   const sum=document.getElementById('cnSummary');
-  if(sum)sum.innerHTML='<b>'+(+m.slice(0,4))+'年'+(+m.slice(5))+'月</b> '+CN_METRICS[mk]+'：全国最高 <b>'+hi.k+' '+cnFmt(hi[mk])+'</b>，最低 <b>'+lo.k+' '+cnFmt(lo[mk])+'</b> 元/kWh；<span style="color:#667eea;font-weight:700">江苏 '+cnFmt(md['江苏'][mk])+'，居第 '+jsRow.rank+' 位</span>（共 '+rows.length+' 个地区）';
-  let html='<table class="cn-table"><thead><tr><th>排名</th><th>地区</th><th>代理购电价格</th><th>平段到户</th><th>高峰</th><th>低谷</th><th>备注</th></tr></thead><tbody>';
-  rows.forEach(r=>{html+='<tr'+(r.k==='江苏'?' class="cn-js-row"':'')+'><td>'+r.rank+'</td><td><b>'+r.k+'</b></td><td>'+cnFmt(r.b)+'</td><td>'+cnFmt(r.p)+'</td><td>'+cnFmt(r.peak)+'</td><td>'+cnFmt(r.valley)+'</td><td class="cn-note-cell">'+(CN_NOTE[r.k]||'')+'</td></tr>'});
+  if(sum){
+    const jsTxt=jsRow.val!=null?'江苏 '+cnFmt(jsRow.val)+'，居第 '+jsRow.rank+' 位':'江苏该电压等级暂无数据';
+    sum.innerHTML='<b>'+(+m.slice(0,4))+'年'+(+m.slice(5))+'月</b> · 两部制'+vName+' · '+CN_METRICS[mk]+'：全国最高 <b>'+hi.k+' '+cnFmt(hi.val)+'</b>，最低 <b>'+lo.k+' '+cnFmt(lo.val)+'</b> 元/kWh；<span style="color:#667eea;font-weight:700">'+jsTxt+'</span>（共 '+avail.length+' 个地区有数据）';
+  }
+  let html='<table class="cn-table"><thead><tr><th>排名</th><th>地区</th><th>代理购电价格</th><th>平段到户</th><th>高峰</th><th>低谷</th><th>最大需量</th><th>变压器容量</th><th>备注</th></tr></thead><tbody>';
+  rows.forEach(r=>{const lv=r.lv;
+    html+='<tr'+(r.k==='江苏'?' class="cn-js-row"':'')+'><td>'+r.rank+'</td><td><b>'+r.k+'</b></td><td>'+cnFmt(r.b)+'</td><td>'+(lv?cnFmt(lv.p):'—')+'</td><td>'+(lv?cnFmt(lv.peak):'—')+'</td><td>'+(lv?cnFmt(lv.valley):'—')+'</td><td>'+(lv?cnNum(lv.demand):'—')+'</td><td>'+(lv?cnNum(lv.cap):'—')+'</td><td class="cn-note-cell">'+(CN_NOTE[r.k]||'')+'</td></tr>'});
   html+='</tbody></table>';
   area.innerHTML=html;
 }
