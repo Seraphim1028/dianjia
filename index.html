@@ -144,6 +144,16 @@ tr:hover td{background:#f8f9ff}
 .cn-js-row td{font-weight:600}
 .cn-note-cell{font-size:11px;color:#999;text-align:left}
 .view-mobile #cnMap{height:380px}
+.cn-map-card{background:radial-gradient(1100px 460px at 18% -12%,rgba(79,195,247,.16),transparent 60%),linear-gradient(165deg,#101f42 0%,#17305e 58%,#1b3a70 100%);border:none;box-shadow:0 10px 34px rgba(10,25,60,.35)}
+.cn-map-card h2{color:#fff}
+.cn-map-card h2::before{background:linear-gradient(180deg,#4fc3f7,#00e5ff)}
+.cn-map-card .filters label{color:rgba(255,255,255,.72)}
+.cn-map-card select{background:rgba(255,255,255,.10);color:#fff;border-color:rgba(255,255,255,.30)}
+.cn-map-card select:hover{border-color:rgba(255,255,255,.55)}
+.cn-map-card select:focus{border-color:#4fc3f7}
+.cn-map-card select option{color:#1a2a4a;background:#fff}
+.cn-map-card .cn-hint{color:rgba(255,255,255,.60)}
+.cn-map-card .cn-note{color:rgba(255,255,255,.45)}
 .view-mobile .cn-table{font-size:12px}
 </style>
 </head>
@@ -313,7 +323,7 @@ tr:hover td{background:#f8f9ff}
 
 <!-- ===== Tab 4: 全国地图 ===== -->
 <div class="panel" id="panel4">
-<div class="card">
+<div class="card cn-map-card">
 <h2>全国各省电价地图</h2>
 <div class="filters">
 <div><label>月份</label>
@@ -549,20 +559,21 @@ function renderCNMap(){
   const vals=entries.map(e=>e[1]);
   const mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals);
   const ranked={};entries.sort((a,b)=>b[1]-a[1]).forEach((e,i)=>ranked[e[0]]=i+1);
-  const data=Object.keys(CN_GEO_NAME).map(geo=>{const k=CN_GEO_NAME[geo];return{name:geo,value:mval(k)}});
+  const data=Object.keys(CN_GEO_NAME).map(geo=>{const k=CN_GEO_NAME[geo];const item={name:geo,value:mval(k)};if(k==='江苏')item.itemStyle={borderColor:'#ffd166',borderWidth:1.6,shadowBlur:12,shadowColor:'rgba(255,209,102,.55)'},item.label={show:true,formatter:'★江苏',color:'#fff',fontWeight:700,fontSize:10,textBorderColor:'rgba(16,31,66,.9)',textBorderWidth:2};return item});
   cnChart.setOption({
-    tooltip:{trigger:'item',triggerOn:'mousemove|click',backgroundColor:'rgba(50,50,50,.88)',textStyle:{fontSize:12,color:'#fff'},borderWidth:0,formatter:p=>{
+    tooltip:{trigger:'item',triggerOn:'mousemove|click',backgroundColor:'rgba(14,28,60,.94)',borderColor:'#4fc3f7',borderWidth:1,textStyle:{fontSize:12,color:'#fff'},formatter:p=>{
       const k=CN_GEO_NAME[p.name],d=md[k],lv=d&&d.v?d.v[vk]:null;
       if(!d||mval(k)==null)return '<b>'+p.name+'</b><br/>该电压等级暂无数据';
       let html='<b>'+p.name+'</b> · '+CN_METRICS[mk]+' '+cnFmt(mval(k))+' 元/kWh（第'+(ranked[k]||'—')+'位）<br/>代理购电：'+cnFmt(d.b);
       if(lv)html+='<br/>平段：'+cnFmt(lv.p)+'｜高峰：'+cnFmt(lv.peak)+'｜低谷：'+cnFmt(lv.valley)+'<br/>最大需量：'+cnNum(lv.demand)+' 元/kW·月｜容量：'+cnNum(lv.cap)+' 元/kVA·月';
       return html;
     }},
-    visualMap:{type:'piecewise',splitNumber:5,min:mn,max:mx,left:10,bottom:10,itemWidth:13,itemHeight:10,textStyle:{fontSize:10,color:'#666'},inRange:{color:['#2c7bb6','#abd9e9','#ffffbf','#fdae61','#d7191c']}},
+    visualMap:{type:'continuous',min:mn,max:mx,left:12,bottom:16,itemWidth:12,itemHeight:118,calculable:false,precision:3,text:['高价','低价'],textStyle:{color:'rgba(255,255,255,.85)',fontSize:10},inRange:{color:['#313695','#4575b4','#74add1','#abd9e9','#e0f3f8','#ffffbf','#fee090','#fdae61','#f46d43','#d73027','#a50026']}},
     series:[{type:'map',map:'china',roam:true,scaleLimit:{min:0.7,max:9},layoutAnimation:false,
-      label:{show:true,fontSize:9,color:'#444',formatter:p=>cnShortName(p.name)},
-      itemStyle:{borderColor:'#fff',borderWidth:.6,areaColor:'#eee'},
-      emphasis:{label:{show:true,fontSize:10,fontWeight:700,color:'#222'},itemStyle:{areaColor:'#f4b183',shadowBlur:8,shadowColor:'rgba(0,0,0,.35)'}},
+      label:{show:true,fontSize:9,color:'rgba(255,255,255,.82)',formatter:p=>cnShortName(p.name)},
+      itemStyle:{borderColor:'rgba(255,255,255,.40)',borderWidth:.5,areaColor:'#243659'},
+      emphasis:{label:{show:true,fontSize:10,fontWeight:700,color:'#132743'},itemStyle:{areaColor:'#ffc94d',shadowBlur:16,shadowColor:'rgba(0,0,0,.5)',borderColor:'#fff',borderWidth:1}},
+      selectedMode:false,
       data:data}]
   },true);
   renderCNTable(md,mk,vk,ranked,m);
