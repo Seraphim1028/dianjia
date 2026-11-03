@@ -129,13 +129,29 @@ tr:hover td{background:#f8f9ff}
 .view-mobile .file-list{grid-template-columns:1fr}
 .view-mobile .case-form{grid-template-columns:1fr}
 .view-pc .container{max-width:1200px}
+
+/* ===== 全国电价地图 ===== */
+#cnMap{width:100%;height:440px}
+.cn-hint{font-size:12px;color:#888;margin:8px 0 4px;line-height:1.6}
+.cn-note{font-size:12px;color:#999;line-height:1.9;margin-top:12px}
+.cn-summary{font-size:13px;color:#555;line-height:1.8;margin-bottom:10px;padding:10px 12px;background:linear-gradient(135deg,rgba(102,126,234,.06),rgba(118,75,162,.06));border-radius:10px}
+#cnTableArea{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.cn-table{width:100%;border-collapse:collapse;font-size:13px;min-width:660px}
+.cn-table th{background:#f0f2f8;padding:9px 8px;font-size:12px;color:#555;white-space:nowrap;text-align:center;border-bottom:2px solid #e2e6f0}
+.cn-table td{padding:8px 8px;border-bottom:1px solid #eef0f6;text-align:center;white-space:nowrap}
+.cn-table td:nth-child(2){text-align:left}
+.cn-js-row{background:rgba(102,126,234,.10)}
+.cn-js-row td{font-weight:600}
+.cn-note-cell{font-size:11px;color:#999;text-align:left}
+.view-mobile #cnMap{height:350px}
+.view-mobile .cn-table{font-size:12px}
 </style>
 </head>
 <body>
 <div class="header">
 <h1>⚡ 江苏省工商业电价看板</h1>
 
-  <p>国网江苏省电力有限公司 · 代理购电工商业用户电价公示数据 · 金湖县域应用</p>
+  <p>国网江苏省电力有限公司 · 代理购电工商业用户电价公示数据 · 含全国各省电价对比 · 金湖县域应用</p>
   <div class="view-switch">
     <div class="vs-box">
       <button class="vs-btn active" id="vsMobile" onclick="setViewMode('mobile')">📱 手机版</button>
@@ -148,6 +164,7 @@ tr:hover td{background:#f8f9ff}
 <button class="tab-btn" onclick="switchTab(1)">📁 文件浏览</button>
 <button class="tab-btn" onclick="switchTab(2)">📈 趋势分析</button>
 <button class="tab-btn" onclick="switchTab(3)">🧮 电费计算</button>
+<button class="tab-btn" onclick="switchTab(4)">🗺️ 全国地图</button>
 </div>
 <div class="container">
 
@@ -294,6 +311,37 @@ tr:hover td{background:#f8f9ff}
 </div>
 </div>
 
+<!-- ===== Tab 4: 全国地图 ===== -->
+<div class="panel" id="panel4">
+<div class="card">
+<h2>全国各省电价地图</h2>
+<div class="filters">
+<div><label>月份</label>
+<select id="cnMonth" onchange="renderCNMap()"></select></div>
+<div><label>指标</label>
+<select id="cnMetric" onchange="renderCNMap()">
+<option value="b">代理购电价格</option>
+<option value="p">到户电度电价·平段</option>
+<option value="peak">高峰时段电价</option>
+<option value="valley">低谷时段电价</option>
+</select></div>
+<div><label>电压等级</label>
+<select id="cnVolt" title="当前收录两部制1-10(20)千伏口径，其他电压等级将陆续补充">
+<option>两部制 1-10(20)千伏</option>
+</select></div>
+</div>
+<p class="cn-hint" id="cnHint"></p>
+<div id="cnMapArea"><div id="cnMap"></div></div>
+<p class="cn-note">颜色由蓝到红表示电价由低到高（蓝色低、红色高）；点击/悬停省份可查看该省四项电价与全国排名。</p>
+</div>
+<div class="card">
+<h2>全国电价明细表</h2>
+<div id="cnSummary" class="cn-summary"></div>
+<div id="cnTableArea"></div>
+<p class="cn-note">单位：元/kWh。数据口径：各省当月电网企业代理购电工商业用户电价公告；到户价为两部制（大工业）1-10(20)千伏电度电价（含输配电价、政府性基金及附加、系统运行费），南网省份取其公告两部制口径，深圳为独立价区。河北/冀北、蒙西/蒙东为不同电网企业，地图分别按国网河北、内蒙古电力（蒙西）着色。西藏及港澳台电力体制不同，暂无适用数据。部分省份执行尖峰/深谷时段电价，表中仅列高峰/低谷。数据经北极星电力市场网、储能与电力市场、Mysteel等汇总转载核验。</p>
+</div>
+</div>
+
 <!-- ===== 图片放大查看 ===== -->
 <div class="lightbox" id="lightbox" onclick="closeLightbox()">
 <span class="close-btn">×</span>
@@ -413,6 +461,117 @@ function switchTab(i){
   if(i===1)renderFileList();
   if(i===2)renderTrend();
   if(i===3){initCalc();renderCases();}
+  if(i===4)initCNMap();
+}
+
+// ===================== 全国各省电价（首期2026年11月） =====================
+// 数据来源：各省电网公司当月代理购电工商业用户电价公告（经北极星电力市场网、储能与电力市场、Mysteel等汇总转载核验）
+// 口径：b=代理购电价格（不分电压）；p/peak/valley=两部制（大工业）1-10(20)千伏到户电度电价（平段/未分时、高峰、低谷）
+const CN={
+"2026-11":{
+"北京":{b:0.3872,p:0.6186,peak:0.8509,valley:0.3863},
+"天津":{b:0.3896,p:0.7187,peak:1.0503,valley:0.3870},
+"河北":{b:0.4077,p:0.6504,peak:0.8891,valley:0.3272},
+"冀北":{b:0.4068,p:0.6140,peak:0.8899,valley:0.3382},
+"山西":{b:0.3383,p:0.5701,peak:0.7483,valley:0.4067},
+"山东":{b:0.4742,p:0.5777,peak:0.9213,valley:0.2340},
+"河南":{b:0.4650,p:0.6973,peak:1.1513,valley:0.3505},
+"辽宁":{b:0.3015,p:0.5874,peak:0.7381,valley:0.4366},
+"吉林":{b:0.3334,p:0.6952,peak:0.8785,valley:0.5119},
+"黑龙江":{b:0.3082,p:0.6336,peak:0.7877,valley:0.4795},
+"上海":{b:0.4190,p:0.6455,peak:0.9943,valley:0.3549},
+"江苏":{b:0.4121,p:0.6428,peak:0.9725,valley:0.3749},
+"浙江":{b:0.4128,p:0.6251,peak:1.0253,valley:0.3426},
+"安徽":{b:0.4145,p:0.6411,peak:1.0459,valley:0.3031},
+"福建":{b:0.4647,p:0.7356,peak:1.0052,valley:0.4428},
+"江西":{b:0.4170,p:0.6657,peak:0.9159,valley:0.4155},
+"湖北":{b:0.3874,p:0.6378,peak:0.8365,valley:0.4270},
+"湖南":{b:0.3802,p:0.7150,peak:1.0555,valley:0.3745},
+"四川":{b:0.3370,p:0.6037,peak:0.9015,valley:0.3060},
+"重庆":{b:0.4135,p:0.6613,peak:1.0003,valley:0.3110},
+"陕西":{b:0.3390,p:0.6433,peak:0.8806,valley:0.4060},
+"甘肃":{b:0.2484,p:0.4406,peak:0.4780,valley:0.2919},
+"宁夏":{b:0.3259,p:0.4655,peak:0.4657,valley:0.3100},
+"青海":{b:0.2182,p:0.3499,peak:0.4874,valley:0.2081},
+"新疆":{b:0.2483,p:0.4537,peak:0.6354,valley:0.2719},
+"广东":{b:0.4910,p:0.7199,peak:1.2044,valley:0.2908},
+"深圳":{b:0.4910,p:0.5845,peak:0.9674,valley:0.2016},
+"广西":{b:0.4464,p:0.7487,peak:0.9306,valley:0.5668},
+"云南":{b:0.3330,p:0.5334,peak:0.6999,valley:0.3668},
+"贵州":{b:0.3972,p:0.5690,peak:0.8184,valley:0.3196},
+"海南":{b:0.4085,p:0.6741,peak:0.9601,valley:0.4290},
+"蒙西":{b:0.3003,p:0.4234,peak:0.6276,valley:0.2673},
+"蒙东":{b:0.2038}
+}};
+const CN_METRICS={b:'代理购电价格',p:'到户电度电价·平段',peak:'高峰时段电价',valley:'低谷时段电价'};
+const CN_GEO_NAME={'北京市':'北京','天津市':'天津','河北省':'河北','山西省':'山西','内蒙古自治区':'蒙西','辽宁省':'辽宁','吉林省':'吉林','黑龙江省':'黑龙江','上海市':'上海','江苏省':'江苏','浙江省':'浙江','安徽省':'安徽','福建省':'福建','江西省':'江西','山东省':'山东','河南省':'河南','湖北省':'湖北','湖南省':'湖南','广东省':'广东','广西壮族自治区':'广西','海南省':'海南','重庆市':'重庆','四川省':'四川','贵州省':'贵州','云南省':'云南','陕西省':'陕西','甘肃省':'甘肃','青海省':'青海','宁夏回族自治区':'宁夏','新疆维吾尔自治区':'新疆'};
+const CN_NOTE={'河北':'地图取国网河北，冀北单列','冀北':'国网冀北（唐山、张家口等5市）','山东':'另有深谷时段0.0623元','上海':'10千伏档','广东':'珠三角价区到户价，代理购电价全省统一','深圳':'深圳供电局独立价区，地图并入广东','甘肃':'代理购电价格为平段口径','宁夏':'代理购电价格为平段口径','新疆':'代理购电价格为平段口径','蒙西':'内蒙古电力（蒙西），地图按蒙西着色','蒙东':'国网蒙东，暂仅代理购电价格'};
+let cnChart=null,cnMapReady=false,cnMapLoading=null;
+function cnFmt(v){return v==null?'—':(+v).toFixed(4)}
+function cnShortName(n){return n.replace(/(省|市|壮族自治区|回族自治区|维吾尔自治区|特别行政区|自治区)$/,'')}
+function cnLoadScript(src,checkVar){return new Promise((res,rej)=>{if(checkVar&&window[checkVar])return res();const s=document.createElement('script');s.src=src;s.onload=()=>res();s.onerror=()=>rej(new Error('加载失败'));document.head.appendChild(s)})}
+async function initCNMap(){
+  if(cnMapReady){renderCNMap();return}
+  if(cnMapLoading)return cnMapLoading;
+  cnMapLoading=(async()=>{
+    try{
+      await cnLoadScript('assets/echarts.min.js','echarts');
+      await cnLoadScript('assets/china.js','CN_GEOJSON');
+    }catch(e){
+      try{if(!window.echarts)await cnLoadScript('https://registry.npmmirror.com/echarts/latest/files/dist/echarts.min.js','echarts')}catch(e2){
+        document.getElementById('cnMapArea').innerHTML='<p style="color:#e74c3c;font-size:13px;padding:30px 0;text-align:center">地图组件加载失败，请检查网络后刷新重试。</p>';return;
+      }
+      if(!window.CN_GEOJSON){document.getElementById('cnMapArea').innerHTML='<p style="color:#e74c3c;font-size:13px;padding:30px 0;text-align:center">地图数据加载失败，请刷新重试。</p>';return}
+    }
+    try{echarts.registerMap('china',window.CN_GEOJSON)}catch(e){document.getElementById('cnMapArea').innerHTML='<p style="color:#e74c3c;font-size:13px;padding:30px 0;text-align:center">地图初始化失败。</p>';return}
+    cnChart=echarts.init(document.getElementById('cnMap'));
+    const sel=document.getElementById('cnMonth');
+    if(sel&&!sel.options.length){const ms=Object.keys(CN).sort();ms.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m.slice(0,4)+'年'+(+m.slice(5))+'月';sel.appendChild(o)});sel.value=ms[ms.length-1]}
+    cnMapReady=true;
+    renderCNMap();
+  })();
+  return cnMapLoading;
+}
+function renderCNMap(){
+  if(!cnChart)return;
+  const mk=document.getElementById('cnMetric').value,m=document.getElementById('cnMonth').value,md=CN[m]||{};
+  const hint=document.getElementById('cnHint');
+  if(hint)hint.textContent=mk==='b'?'代理购电价格为电网代理购电均价，不分电压等级，反映各省购电成本水平':'到户口径：两部制（大工业）1-10(20)千伏电度电价，含输配电价、政府性基金及附加、系统运行费';
+  const entries=Object.entries(md).filter(e=>e[1][mk]!=null);
+  const vals=entries.map(e=>e[1][mk]);
+  const mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals);
+  const ranked={};entries.sort((a,b)=>b[1][mk]-a[1][mk]).forEach((e,i)=>ranked[e[0]]=i+1);
+  const data=Object.keys(CN_GEO_NAME).map(geo=>{const k=CN_GEO_NAME[geo],v=md[k];return{name:geo,value:v&&v[mk]!=null?v[mk]:undefined}});
+  cnChart.setOption({
+    tooltip:{trigger:'item',triggerOn:'mousemove|click',backgroundColor:'rgba(50,50,50,.88)',textStyle:{fontSize:12,color:'#fff'},borderWidth:0,formatter:p=>{
+      const k=CN_GEO_NAME[p.name],d=md[k];
+      if(!d||d[mk]==null)return '<b>'+p.name+'</b><br/>暂无数据';
+      return '<b>'+p.name+'</b> · '+CN_METRICS[mk]+' '+cnFmt(d[mk])+' 元/kWh（第'+(ranked[k]||'—')+'位）<br/>代理购电：'+cnFmt(d.b)+'<br/>平段到户：'+cnFmt(d.p)+'<br/>高峰：'+cnFmt(d.peak)+'<br/>低谷：'+cnFmt(d.valley);
+    }},
+    visualMap:{type:'piecewise',splitNumber:5,min:mn,max:mx,left:10,bottom:10,itemWidth:13,itemHeight:10,textStyle:{fontSize:10,color:'#666'},inRange:{color:['#2c7bb6','#abd9e9','#ffffbf','#fdae61','#d7191c']}},
+    series:[{type:'map',map:'china',roam:false,layoutAnimation:false,
+      label:{show:true,fontSize:9,color:'#444',formatter:p=>cnShortName(p.name)},
+      itemStyle:{borderColor:'#fff',borderWidth:.6,areaColor:'#eee'},
+      emphasis:{label:{show:true,fontSize:10,fontWeight:700,color:'#222'},itemStyle:{areaColor:'#f4b183',shadowBlur:8,shadowColor:'rgba(0,0,0,.35)'}},
+      data:data}]
+  },true);
+  renderCNTable(md,mk,ranked,m);
+}
+function renderCNTable(md,mk,ranked,m){
+  const area=document.getElementById('cnTableArea');
+  if(!area)return;
+  const rows=Object.keys(md).map(k=>({k:k,b:md[k].b,p:md[k].p,peak:md[k].peak,valley:md[k].valley}));
+  rows.sort((a,b)=>((b[mk]==null?-1:b[mk])-(a[mk]==null?-1:a[mk])));
+  rows.forEach((r,i)=>r.rank=i+1);
+  const hi=rows[0];
+  const lo=rows.filter(r=>r[mk]!=null).pop();
+  const jsRow=rows.find(r=>r.k==='江苏')||{};
+  const sum=document.getElementById('cnSummary');
+  if(sum)sum.innerHTML='<b>'+(+m.slice(0,4))+'年'+(+m.slice(5))+'月</b> '+CN_METRICS[mk]+'：全国最高 <b>'+hi.k+' '+cnFmt(hi[mk])+'</b>，最低 <b>'+lo.k+' '+cnFmt(lo[mk])+'</b> 元/kWh；<span style="color:#667eea;font-weight:700">江苏 '+cnFmt(md['江苏'][mk])+'，居第 '+jsRow.rank+' 位</span>（共 '+rows.length+' 个地区）';
+  let html='<table class="cn-table"><thead><tr><th>排名</th><th>地区</th><th>代理购电价格</th><th>平段到户</th><th>高峰</th><th>低谷</th><th>备注</th></tr></thead><tbody>';
+  rows.forEach(r=>{html+='<tr'+(r.k==='江苏'?' class="cn-js-row"':'')+'><td>'+r.rank+'</td><td><b>'+r.k+'</b></td><td>'+cnFmt(r.b)+'</td><td>'+cnFmt(r.p)+'</td><td>'+cnFmt(r.peak)+'</td><td>'+cnFmt(r.valley)+'</td><td class="cn-note-cell">'+(CN_NOTE[r.k]||'')+'</td></tr>'});
+  html+='</tbody></table>';
+  area.innerHTML=html;
 }
 
 // ===================== 视图模式（手机版/电脑版，默认手机版） =====================
@@ -432,6 +591,7 @@ function setViewMode(mode,save){
     if(active.id==='panel0'){if(pvChart)renderPriceTable()}
     else if(active.id==='panel2'){if(trendChartObj)renderTrend()}
     else if(active.id==='panel3'){if(dailyChartObj)dailyChartObj.resize()}
+    else if(active.id==='panel4'){if(cnChart)cnChart.resize()}
   },80);
 }
 
